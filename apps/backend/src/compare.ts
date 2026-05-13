@@ -6,7 +6,7 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 import { createClient } from "@supabase/supabase-js";
 import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
 
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
 

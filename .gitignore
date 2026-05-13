@@ -6,4 +6,5 @@ node_modules/
 dist/
 .vscode/
 .env.local
-.next*.backup
+.next
+*.backup
