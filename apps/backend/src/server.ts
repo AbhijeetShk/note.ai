@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { graph} from "./agent/agent";
+import { graph} from "./agent/agent.js";
 
 dotenv.config();
     // "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"

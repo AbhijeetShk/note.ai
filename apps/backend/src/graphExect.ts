@@ -1,5 +1,3 @@
-import type { myAgent } from "./agent";
-
 const PIPELINE_NODES = [
   { name: "classify", stateKey: "classification", label: "Classify" },
   { name: "do_research", stateKey: "research", label: "Research" },

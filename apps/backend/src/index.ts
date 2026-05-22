@@ -8,13 +8,20 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 import { createClient } from "@supabase/supabase-js";
 import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
-import './compare'
+import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
+import { z } from "zod";
+import "./compare.js";
+
+// Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
+const AnswerSchema = z.object({
+  answer: z.string(),
+  confidence: z.number().min(0).max(1),
+});
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
+  process.env.SUPABASE_ANON_KEY!,
 );
 
 const embeddings = new HuggingFaceInferenceEmbeddings({
@@ -84,7 +91,7 @@ async function loadPdf(path: string, documentId?: string) {
 function buildRetriever(
   k = 6,
   searchType: "mmr" | "similarity" = "mmr",
-  source?: string
+  source?: string,
 ) {
   return vectorStore.asRetriever({
     k,
@@ -111,28 +118,23 @@ async function queryExpansion(query: string) {
 
 function dedupeDocs(docs: any[]) {
   return Array.from(
-    new Map(docs.map((doc) => [doc.pageContent, doc])).values()
+    new Map(docs.map((doc) => [doc.pageContent, doc])).values(),
   );
 }
 
-async function retrieveHybrid(
-  question: string,
-  mode: Mode,
-  source?: string
-) {
+async function retrieveHybrid(question: string, mode: Mode, source?: string) {
   const config = getModeConfig(mode);
   const queries = await queryExpansion(question);
-  const allDocs: any[] = [];
+  let allDocs: any[] = [];
 
-  for (const q of queries) {
-    const docs = await buildRetriever(
-      config.k,
-      config.searchType,
-      source
-    ).invoke(q);
+  // changed to parallel retrieval for all query variants for low latency, better scaling, for further agent/tools integration
+  const results = await Promise.all(
+    queries.map((q) =>
+      buildRetriever(config.k, config.searchType, source).invoke(q),
+    ),
+  );
 
-    allDocs.push(...docs);
-  }
+  allDocs = results.flat();
 
   return dedupeDocs(allDocs).slice(0, config.k);
 }
@@ -141,10 +143,7 @@ function formatCitations(docs: any[]) {
   return docs.map((doc, index) => ({
     index: index + 1,
     source: doc.metadata?.source || "unknown",
-    page:
-      doc.metadata?.loc?.pageNumber ||
-      doc.metadata?.page ||
-      null,
+    page: doc.metadata?.loc?.pageNumber || doc.metadata?.page || null,
     chunk_id: doc.metadata?.chunk_id ?? null,
   }));
 }
@@ -152,55 +151,65 @@ function formatCitations(docs: any[]) {
 async function ask(question: string, options: AskOptions = {}) {
   const mode = options.mode || "balanced";
 
-  const docs = await retrieveHybrid(
-    question,
-    mode,
-    options.source
-  );
+  const docs = await retrieveHybrid(question, mode, options.source);
+  const context = docs.map((doc) => doc.pageContent).join("\n\n");
+  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
 
   const prompt = ChatPromptTemplate.fromMessages([
     [
       "system",
-      "Answer only from provided context. If context is insufficient, say you do not know.\n\n{context}",
+      `
+You are a grounded RAG assistant.
+
+Answer ONLY from the provided context.
+
+If context is insufficient:
+- say you do not know
+- keep confidence low
+
+Return:
+- answer
+- confidence between 0 and 1
+
+Context:
+${context}
+      `,
     ],
     ["human", "{input}"],
   ]);
 
-  const chain = await createStuffDocumentsChain({
-    llm,
-    prompt,
-  });
-
-  const response = await chain.invoke({
+  // const chain = await createStuffDocumentsChain({
+  //   llm: structuredLlm,
+  //   prompt,
+  // });
+  // const response = await chain.invoke({
+  //   input: question,
+  //   context: docs,
+  // });
+const formattedPrompt = await prompt.formatMessages({
+    context,
     input: question,
-    context: docs,
   });
+   const response = await structuredLlm.invoke(
+    formattedPrompt
+  );
 
-  return {
-    answer: String(response),
+return {
+    ...response,
     docs,
     citations: formatCitations(docs),
     mode,
   };
 }
 
-async function evaluate(
-  question: string,
-  answer: string,
-  docs: any[]
-) {
-  const totalChars = docs.reduce(
-    (sum, doc) => sum + doc.pageContent.length,
-    0
-  );
+async function evaluate(question: string, answer: string, docs: any[]) {
+  const totalChars = docs.reduce((sum, doc) => sum + doc.pageContent.length, 0);
 
   return {
     question,
     answerLength: answer.length,
     contextCount: docs.length,
-    avgChunkSize: Math.round(
-      totalChars / Math.max(docs.length, 1)
-    ),
+    avgChunkSize: Math.round(totalChars / Math.max(docs.length, 1)),
     grounded: docs.length > 0,
   };
 }
@@ -221,13 +230,7 @@ async function main() {
   console.log(result.citations);
 
   console.log("EVALUATION:");
-  console.log(
-    await evaluate(
-      question,
-      result.answer,
-      result.docs
-    )
-  );
+  console.log(await evaluate(question, result.answer, result.docs));
 }
 
 main();
