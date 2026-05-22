@@ -122,7 +122,7 @@ function dedupeDocs(docs: any[]) {
   );
 }
 
-async function retrieveHybrid(question: string, mode: Mode, source?: string) {
+export async function retrieveHybrid(question: string, mode: Mode, source?: string) {
   const config = getModeConfig(mode);
   const queries = await queryExpansion(question);
   let allDocs: any[] = [];
@@ -148,7 +148,7 @@ function formatCitations(docs: any[]) {
   }));
 }
 
-async function ask(question: string, options: AskOptions = {}) {
+export async function ask(question: string, options: AskOptions = {}) {
   const mode = options.mode || "balanced";
 
   const docs = await retrieveHybrid(question, mode, options.source);

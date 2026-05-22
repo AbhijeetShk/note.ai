@@ -1,11 +1,7 @@
 import { ChatGroq } from "@langchain/groq";
-import {
-  StateGraph,
-  Annotation,
-  START,
-  END,
-} from "@langchain/langgraph";
+import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import dotenv from "dotenv";
+import { ask, retrieveHybrid } from "../index.js";
 
 dotenv.config();
 
@@ -44,71 +40,41 @@ const GraphState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => "",
   }),
+  route: Annotation<"simple_rag" | "deep_rag" | "clarify">({
+    reducer: (_, update) => update,
+    default: () => "simple_rag",
+  }),
+  retrievedDocs: Annotation<any[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
 });
 
 async function classify(state: typeof GraphState.State) {
-  const response = await llm.invoke([
-    {
-      role: "system",
-      content: "Classify the user query in one line.",
-    },
-    ...state.messages,
-  ]);
+  const question =
+    state.messages[state.messages.length - 1]?.content.toLowerCase() || "";
+
+  let route: "simple_rag" | "deep_rag" | "clarify" = "simple_rag";
+
+  if (question.length < 10) {
+    route = "clarify";
+  }
+
+  if (
+    question.includes("compare") ||
+    question.includes("analyze") ||
+    question.includes("deep")
+  ) {
+    route = "deep_rag";
+  }
 
   return {
-    classification: response.content as string,
-    messages: [
-      {
-        role: "assistant",
-        content: `Classification: ${response.content}`,
-      },
-    ],
+    route,
   };
 }
-
-async function doResearch(state: typeof GraphState.State) {
-  const response = await llm.invoke([
-    {
-      role: "system",
-      content: "Research the query based on previous classification.",
-    },
-    {
-      role: "user",
-      content: state.classification,
-    },
-  ]);
-
+async function clarify() {
   return {
-    research: response.content as string,
-    messages: [
-      {
-        role: "assistant",
-        content: `Research: ${response.content}`,
-      },
-    ],
-  };
-}
-
-async function analyze(state: typeof GraphState.State) {
-  const response = await llm.invoke([
-    {
-      role: "system",
-      content: "Analyze the research deeply.",
-    },
-    {
-      role: "user",
-      content: state.research,
-    },
-  ]);
-
-  return {
-    analysis: response.content as string,
-    messages: [
-      {
-        role: "assistant",
-        content: `Analysis: ${response.content}`,
-      },
-    ],
+    synthesis: "Can you clarify your question?",
   };
 }
 
@@ -134,17 +100,43 @@ async function synthesize(state: typeof GraphState.State) {
     ],
   };
 }
+async function retrieve(state: typeof GraphState.State) {
+  const question = state.messages[state.messages.length - 1]?.content || "";
 
+  const docs = await retrieveHybrid(question, "balanced");
+
+  return {
+    retrievedDocs: docs,
+  };
+}
+async function generateAnswer(state: typeof GraphState.State) {
+  const question = state.messages[state.messages.length - 1]?.content || "";
+
+  const result = await ask(question);
+
+  return {
+    synthesis: result.answer,
+    messages: [
+      {
+        role: "assistant",
+        content: result.answer,
+      },
+    ],
+  };
+}
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
-  .addNode("do_research", doResearch)
-  .addNode("analyze", analyze)
+  .addNode("retrieve", retrieve)
+  .addNode("clarify", clarify)
   .addNode("synthesize", synthesize)
 
   .addEdge(START, "classify")
-  .addEdge("classify", "do_research")
-  .addEdge("do_research", "analyze")
-  .addEdge("analyze", "synthesize")
+  .addConditionalEdges("classify", (state) => state.route, {
+    simple_rag: "retrieve",
+    deep_rag: "retrieve",
+    clarify: "clarify",
+  })
+  .addEdge("retrieve", "synthesize")
   .addEdge("synthesize", END)
 
   .compile();
