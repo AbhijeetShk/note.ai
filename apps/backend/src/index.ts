@@ -11,6 +11,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
 import { z } from "zod";
 import "./compare.js";
+import { tool } from "@langchain/core/tools";
 
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
@@ -122,7 +123,11 @@ function dedupeDocs(docs: any[]) {
   );
 }
 
-export async function retrieveHybrid(question: string, mode: Mode, source?: string) {
+export async function retrieveHybrid(
+  question: string,
+  mode: Mode,
+  source?: string,
+) {
   const config = getModeConfig(mode);
   const queries = await queryExpansion(question);
   let allDocs: any[] = [];
@@ -147,18 +152,10 @@ function formatCitations(docs: any[]) {
     chunk_id: doc.metadata?.chunk_id ?? null,
   }));
 }
-
-export async function ask(question: string, options: AskOptions = {}) {
-  const mode = options.mode || "balanced";
-
-  const docs = await retrieveHybrid(question, mode, options.source);
-  const context = docs.map((doc) => doc.pageContent).join("\n\n");
-  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
-
-  const prompt = ChatPromptTemplate.fromMessages([
-    [
-      "system",
-      `
+const ragPrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    `
 You are a grounded RAG assistant.
 
 Answer ONLY from the provided context.
@@ -172,11 +169,15 @@ Return:
 - confidence between 0 and 1
 
 Context:
-${context}
-      `,
-    ],
-    ["human", "{input}"],
-  ]);
+{context}
+    `,
+  ],
+  ["human", "{input}"],
+]);
+export async function ask(question: string, options: AskOptions = {}) {
+  const mode = options.mode || "balanced";
+
+  const docs = await retrieveHybrid(question, mode, options.source);
 
   // const chain = await createStuffDocumentsChain({
   //   llm: structuredLlm,
@@ -186,22 +187,31 @@ ${context}
   //   input: question,
   //   context: docs,
   // });
-const formattedPrompt = await prompt.formatMessages({
+  return generateFromDocs(question, docs, mode);
+}
+export async function generateFromDocs(
+  question: string,
+  docs: any[],
+  mode: Mode = "balanced",
+) {
+  const context = docs.map((doc) => doc.pageContent).join("\n\n");
+
+  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
+
+  const formattedPrompt = await ragPrompt.formatMessages({
     context,
     input: question,
   });
-   const response = await structuredLlm.invoke(
-    formattedPrompt
-  );
 
-return {
+  const response = await structuredLlm.invoke(formattedPrompt);
+
+  return {
     ...response,
     docs,
     citations: formatCitations(docs),
     mode,
   };
 }
-
 async function evaluate(question: string, answer: string, docs: any[]) {
   const totalChars = docs.reduce((sum, doc) => sum + doc.pageContent.length, 0);
 

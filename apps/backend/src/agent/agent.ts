@@ -1,14 +1,9 @@
-import { ChatGroq } from "@langchain/groq";
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import dotenv from "dotenv";
-import { ask, retrieveHybrid } from "../index.js";
-
+import { generateFromDocs, retrieveHybrid } from "../index.js";
+import { z } from "zod";
+import { tool } from "@langchain/core/tools";
 dotenv.config();
-
-const llm = new ChatGroq({
-  apiKey: process.env.GROQ_API_KEY,
-  model: "llama-3.3-70b-versatile",
-});
 
 type Message = {
   role: "user" | "assistant" | "system";
@@ -19,21 +14,6 @@ const GraphState = Annotation.Root({
   messages: Annotation<Message[]>({
     reducer: (state, update) => [...state, ...update],
     default: () => [],
-  }),
-
-  classification: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  research: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  analysis: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
   }),
 
   synthesis: Annotation<string>({
@@ -47,6 +27,10 @@ const GraphState = Annotation.Root({
   retrievedDocs: Annotation<any[]>({
     reducer: (_, update) => update,
     default: () => [],
+  }),
+  retrievalQuality: Annotation<"good" | "bad">({
+    reducer: (_, update) => update,
+    default: () => "good",
   }),
 });
 
@@ -77,29 +61,6 @@ async function clarify() {
     synthesis: "Can you clarify your question?",
   };
 }
-
-async function synthesize(state: typeof GraphState.State) {
-  const response = await llm.invoke([
-    {
-      role: "system",
-      content: "Generate the final response from analysis.",
-    },
-    {
-      role: "user",
-      content: state.analysis,
-    },
-  ]);
-
-  return {
-    synthesis: response.content as string,
-    messages: [
-      {
-        role: "assistant",
-        content: response.content as string,
-      },
-    ],
-  };
-}
 async function retrieve(state: typeof GraphState.State) {
   const question = state.messages[state.messages.length - 1]?.content || "";
 
@@ -109,10 +70,46 @@ async function retrieve(state: typeof GraphState.State) {
     retrievedDocs: docs,
   };
 }
-async function generateAnswer(state: typeof GraphState.State) {
-  const question = state.messages[state.messages.length - 1]?.content || "";
+const retrievePdfTool = tool(
+  async ({ query }) => {
+    // TEMP FAKE TOOL
 
-  const result = await ask(question);
+    return JSON.stringify([
+      {
+        page: 12,
+        content: "Quantum computing uses qubits.",
+      },
+    ]);
+  },
+  {
+    name: "retrieve_pdf_chunks",
+    description: "Retrieve relevant chunks from indexed PDFs.",
+    schema: z.object({
+      query: z.string(),
+    }),
+  },
+);
+async function gradeRetrieval(state: typeof GraphState.State) {
+  const docs = state.retrievedDocs;
+
+  if (
+    !docs ||
+    docs.length === 0 ||
+    docs.every((doc) => !doc.pageContent || doc.pageContent.length < 20)
+  ) {
+    return {
+      retrievalQuality: "bad",
+    };
+  }
+
+  return {
+    retrievalQuality: "good",
+  };
+}
+async function synthesize(state: typeof GraphState.State) {
+  const question = state.messages[state.messages.length - 1]?.content || "";
+  const docs = state.retrievedDocs;
+  const result = await generateFromDocs(question, docs, "balanced");
 
   return {
     synthesis: result.answer,
@@ -128,6 +125,7 @@ export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
   .addNode("retrieve", retrieve)
   .addNode("clarify", clarify)
+  .addNode("grade_retrieval", gradeRetrieval)
   .addNode("synthesize", synthesize)
 
   .addEdge(START, "classify")
@@ -136,7 +134,11 @@ export const graph = new StateGraph(GraphState)
     deep_rag: "retrieve",
     clarify: "clarify",
   })
-  .addEdge("retrieve", "synthesize")
+  .addEdge("retrieve", "grade_retrieval")
+  .addConditionalEdges("grade_retrieval", (state) => state.retrievalQuality, {
+    good: "synthesize",
+    bad: "clarify",
+  })
   .addEdge("synthesize", END)
 
   .compile();
