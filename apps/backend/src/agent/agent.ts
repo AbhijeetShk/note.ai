@@ -32,6 +32,14 @@ const GraphState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => "good",
   }),
+  retrievalMode: Annotation<"fast" | "balanced" | "accurate">({
+    reducer: (_, update) => update,
+    default: () => "balanced",
+  }),
+  rerankedDocs: Annotation<any[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
 });
 
 async function classify(state: typeof GraphState.State) {
@@ -39,6 +47,8 @@ async function classify(state: typeof GraphState.State) {
     state.messages[state.messages.length - 1]?.content.toLowerCase() || "";
 
   let route: "simple_rag" | "deep_rag" | "clarify" = "simple_rag";
+
+  let retrievalMode: "fast" | "balanced" | "accurate" = "balanced";
 
   if (question.length < 10) {
     route = "clarify";
@@ -50,10 +60,12 @@ async function classify(state: typeof GraphState.State) {
     question.includes("deep")
   ) {
     route = "deep_rag";
+    retrievalMode = "accurate";
   }
 
   return {
     route,
+    retrievalMode,
   };
 }
 async function clarify() {
@@ -64,7 +76,7 @@ async function clarify() {
 async function retrieve(state: typeof GraphState.State) {
   const question = state.messages[state.messages.length - 1]?.content || "";
 
-  const docs = await retrieveHybrid(question, "balanced");
+  const docs = await retrieveHybrid(question, state.retrievalMode);
 
   return {
     retrievedDocs: docs,
@@ -90,7 +102,7 @@ const retrievePdfTool = tool(
   },
 );
 async function gradeRetrieval(state: typeof GraphState.State) {
-  const docs = state.retrievedDocs;
+ const docs = state.rerankedDocs;
 
   if (
     !docs ||
@@ -108,7 +120,7 @@ async function gradeRetrieval(state: typeof GraphState.State) {
 }
 async function synthesize(state: typeof GraphState.State) {
   const question = state.messages[state.messages.length - 1]?.content || "";
-  const docs = state.retrievedDocs;
+  const docs = state.rerankedDocs;
   const result = await generateFromDocs(question, docs, "balanced");
 
   return {
@@ -121,11 +133,28 @@ async function synthesize(state: typeof GraphState.State) {
     ],
   };
 }
+async function rerankDocuments(
+  state: typeof GraphState.State
+) {
+  const docs = state.retrievedDocs;
+
+  const reranked = docs
+    .sort(
+      (a, b) =>
+        b.pageContent.length -
+        a.pageContent.length
+    )
+    .slice(0, 4);
+
+  return {
+    rerankedDocs: reranked,
+  };
+}
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
   .addNode("retrieve", retrieve)
   .addNode("clarify", clarify)
-  .addNode("grade_retrieval", gradeRetrieval)
+  .addNode("grade_retrieval", gradeRetrieval).addNode("rerank", rerankDocuments)
   .addNode("synthesize", synthesize)
 
   .addEdge(START, "classify")
@@ -134,7 +163,8 @@ export const graph = new StateGraph(GraphState)
     deep_rag: "retrieve",
     clarify: "clarify",
   })
-  .addEdge("retrieve", "grade_retrieval")
+  .addEdge("retrieve", "rerank")
+.addEdge("rerank", "grade_retrieval")
   .addConditionalEdges("grade_retrieval", (state) => state.retrievalQuality, {
     good: "synthesize",
     bad: "clarify",
