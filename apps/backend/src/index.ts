@@ -224,6 +224,32 @@ async function evaluate(question: string, answer: string, docs: any[]) {
   };
 }
 
+export async function generateFromContext(
+  question: string,
+  context: string,
+  mode: Mode = "balanced"
+) {
+  const structuredLlm =
+    llm.withStructuredOutput(
+      AnswerSchema
+    );
+
+  const formattedPrompt =
+    await ragPrompt.formatMessages({
+      context,
+      input: question,
+    });
+
+  const response =
+    await structuredLlm.invoke(
+      formattedPrompt
+    );
+
+  return {
+    ...response,
+    mode,
+  };
+}
 async function main() {
   const question =
     "What is the significance of Stoner relationship with Katherine Driscoll?";

@@ -1,6 +1,6 @@
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import dotenv from "dotenv";
-import { generateFromDocs, retrieveHybrid } from "../index.js";
+import { generateFromContext, generateFromDocs, retrieveHybrid } from "../index.js";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 dotenv.config();
@@ -39,6 +39,10 @@ const GraphState = Annotation.Root({
   rerankedDocs: Annotation<any[]>({
     reducer: (_, update) => update,
     default: () => [],
+  }),
+  compressedContext: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
   }),
 });
 
@@ -102,7 +106,7 @@ const retrievePdfTool = tool(
   },
 );
 async function gradeRetrieval(state: typeof GraphState.State) {
- const docs = state.rerankedDocs;
+  const docs = state.rerankedDocs;
 
   if (
     !docs ||
@@ -120,8 +124,12 @@ async function gradeRetrieval(state: typeof GraphState.State) {
 }
 async function synthesize(state: typeof GraphState.State) {
   const question = state.messages[state.messages.length - 1]?.content || "";
-  const docs = state.rerankedDocs;
-  const result = await generateFromDocs(question, docs, "balanced");
+  const docs = state.compressedContext;
+const result =
+  await generateFromContext(
+    question,
+    state.compressedContext
+  );
 
   return {
     synthesis: result.answer,
@@ -133,28 +141,36 @@ async function synthesize(state: typeof GraphState.State) {
     ],
   };
 }
-async function rerankDocuments(
-  state: typeof GraphState.State
-) {
+async function rerankDocuments(state: typeof GraphState.State) {
   const docs = state.retrievedDocs;
 
   const reranked = docs
-    .sort(
-      (a, b) =>
-        b.pageContent.length -
-        a.pageContent.length
-    )
+    .sort((a, b) => b.pageContent.length - a.pageContent.length)
     .slice(0, 4);
 
   return {
     rerankedDocs: reranked,
   };
 }
+
+async function compressContext(state: typeof GraphState.State) {
+  const docs = state.rerankedDocs;
+
+  const compressed = docs
+    .map((doc) => doc.pageContent.split(".").slice(0, 3).join("."))
+    .join("\n\n");
+
+  return {
+    compressedContext: compressed,
+  };
+}
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
   .addNode("retrieve", retrieve)
   .addNode("clarify", clarify)
-  .addNode("grade_retrieval", gradeRetrieval).addNode("rerank", rerankDocuments)
+  .addNode("grade_retrieval", gradeRetrieval)
+  .addNode("rerank", rerankDocuments)
+  .addNode("compress_context", compressContext)
   .addNode("synthesize", synthesize)
 
   .addEdge(START, "classify")
@@ -164,7 +180,8 @@ export const graph = new StateGraph(GraphState)
     clarify: "clarify",
   })
   .addEdge("retrieve", "rerank")
-.addEdge("rerank", "grade_retrieval")
+  .addEdge("rerank", "compress_context")
+  .addEdge("compress_context", "grade_retrieval")
   .addConditionalEdges("grade_retrieval", (state) => state.retrievalQuality, {
     good: "synthesize",
     bad: "clarify",
