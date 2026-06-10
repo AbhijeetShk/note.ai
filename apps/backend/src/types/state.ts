@@ -1,0 +1,69 @@
+import { Annotation } from "@langchain/langgraph";
+type Message = {
+  role: "user" | "assistant" | "system";
+  content: string;
+};
+export const GraphState = Annotation.Root({
+  messages: Annotation<Message[]>({
+    reducer: (state, update) => [...state, ...update],
+    default: () => [],
+  }),
+
+  synthesis: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+  route: Annotation<"simple_rag" | "deep_rag" | "clarify">({
+    reducer: (_, update) => update,
+    default: () => "simple_rag",
+  }),
+  retrievedDocs: Annotation<any[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+  retrievalQuality: Annotation<"good" | "bad">({
+    reducer: (_, update) => update,
+    default: () => "good",
+  }),
+  retrievalMode: Annotation<"fast" | "balanced" | "accurate">({
+    reducer: (_, update) => update,
+    default: () => "balanced",
+  }),
+  rerankedDocs: Annotation<any[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+  compressedContext: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+  plan: Annotation<string[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+
+
+  toolCalls: Annotation<
+    {
+      tool: string;
+      input: any;
+    }[]
+  >({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+
+  observations: Annotation<
+    {
+      tool: string;
+      result: string;
+    }[]
+  >({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+  toolStatus: Annotation<"continue" | "done">({
+  reducer: (_, update) => update,
+  default: () => "done",
+}),
+});

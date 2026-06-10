@@ -29,7 +29,7 @@ const embeddings = new HuggingFaceInferenceEmbeddings({
   apiKey: process.env.HUGGINGFACEHUB_API_KEY,
 });
 
-const llm = new ChatGroq({
+export const llm = new ChatGroq({
   model: "llama-3.3-70b-versatile",
   temperature: 0,
   apiKey: process.env.GROQ_KEY,

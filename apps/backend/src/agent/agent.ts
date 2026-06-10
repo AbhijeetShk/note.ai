@@ -1,50 +1,22 @@
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import dotenv from "dotenv";
-import { generateFromContext, generateFromDocs, retrieveHybrid } from "../index.js";
+import {
+  generateFromContext,
+  generateFromDocs,
+  llm,
+  retrieveHybrid,
+} from "../index.js";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
+import { planner } from "../planner/planner.js";
+import { executeTools } from "../tools/executor.js";
+import { GraphState } from "../types/state.js";
 dotenv.config();
 
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
 };
-
-const GraphState = Annotation.Root({
-  messages: Annotation<Message[]>({
-    reducer: (state, update) => [...state, ...update],
-    default: () => [],
-  }),
-
-  synthesis: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-  route: Annotation<"simple_rag" | "deep_rag" | "clarify">({
-    reducer: (_, update) => update,
-    default: () => "simple_rag",
-  }),
-  retrievedDocs: Annotation<any[]>({
-    reducer: (_, update) => update,
-    default: () => [],
-  }),
-  retrievalQuality: Annotation<"good" | "bad">({
-    reducer: (_, update) => update,
-    default: () => "good",
-  }),
-  retrievalMode: Annotation<"fast" | "balanced" | "accurate">({
-    reducer: (_, update) => update,
-    default: () => "balanced",
-  }),
-  rerankedDocs: Annotation<any[]>({
-    reducer: (_, update) => update,
-    default: () => [],
-  }),
-  compressedContext: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-});
 
 async function classify(state: typeof GraphState.State) {
   const question =
@@ -86,25 +58,7 @@ async function retrieve(state: typeof GraphState.State) {
     retrievedDocs: docs,
   };
 }
-const retrievePdfTool = tool(
-  async ({ query }) => {
-    // TEMP FAKE TOOL
 
-    return JSON.stringify([
-      {
-        page: 12,
-        content: "Quantum computing uses qubits.",
-      },
-    ]);
-  },
-  {
-    name: "retrieve_pdf_chunks",
-    description: "Retrieve relevant chunks from indexed PDFs.",
-    schema: z.object({
-      query: z.string(),
-    }),
-  },
-);
 async function gradeRetrieval(state: typeof GraphState.State) {
   const docs = state.rerankedDocs;
 
@@ -122,23 +76,53 @@ async function gradeRetrieval(state: typeof GraphState.State) {
     retrievalQuality: "good",
   };
 }
+// async function synthesize(state: typeof GraphState.State) {
+//   const question = state.messages[state.messages.length - 1]?.content || "";
+//   const docs = state.compressedContext;
+// const result =
+//   await generateFromContext(
+//     question,
+//     state.compressedContext
+//   );
+
+//   return {
+//     synthesis: result.answer,
+//     messages: [
+//       {
+//         role: "assistant",
+//         content: result.answer,
+//       },
+//     ],
+//   };
+// }
 async function synthesize(state: typeof GraphState.State) {
-  const question = state.messages[state.messages.length - 1]?.content || "";
-  const docs = state.compressedContext;
-const result =
-  await generateFromContext(
-    question,
-    state.compressedContext
-  );
+  const question = state.messages.at(-1)?.content || "";
+
+  const observations = state.observations
+    .map(
+      (o) =>
+        `[${o.tool}]
+${o.result}`,
+    )
+    .join("\n\n");
+
+  const prompt = `
+Question:
+${question}
+
+Plan:
+${state.plan.join("\n")}
+
+Observations:
+${observations}
+
+Create final answer.
+`;
+
+  const result = await llm.invoke(prompt);
 
   return {
-    synthesis: result.answer,
-    messages: [
-      {
-        role: "assistant",
-        content: result.answer,
-      },
-    ],
+    synthesis: String(result.content),
   };
 }
 async function rerankDocuments(state: typeof GraphState.State) {
@@ -166,30 +150,64 @@ async function compressContext(state: typeof GraphState.State) {
 }
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
+
+  // RAG pipeline
   .addNode("retrieve", retrieve)
-  .addNode("clarify", clarify)
-  .addNode("grade_retrieval", gradeRetrieval)
   .addNode("rerank", rerankDocuments)
   .addNode("compress_context", compressContext)
+  .addNode("grade_retrieval", gradeRetrieval)
+
+  // Clarification
+  .addNode("clarify", clarify)
+
+  // Agent layer
+  .addNode("planner", planner)
+  .addNode("execute_tools", executeTools)
+
+  // Final response
   .addNode("synthesize", synthesize)
 
+  // Entry
   .addEdge(START, "classify")
+
+  // Routing
   .addConditionalEdges("classify", (state) => state.route, {
     simple_rag: "retrieve",
     deep_rag: "retrieve",
     clarify: "clarify",
   })
+
+  // Retrieval pipeline
   .addEdge("retrieve", "rerank")
   .addEdge("rerank", "compress_context")
   .addEdge("compress_context", "grade_retrieval")
-  .addConditionalEdges("grade_retrieval", (state) => state.retrievalQuality, {
-    good: "synthesize",
-    bad: "clarify",
-  })
+
+  // Retrieval quality gate
+  .addConditionalEdges(
+    "grade_retrieval",
+    (state) => state.retrievalQuality,
+    {
+      good: "planner",
+      bad: "clarify",
+    }
+  )
+
+  // Agent planning
+  .addEdge("planner", "execute_tools")
+
+  // Tool execution loop
+  .addConditionalEdges(
+    "execute_tools",
+    (state) => state.toolStatus,
+    {
+      continue: "planner",
+      done: "synthesize",
+    }
+  )
+
   .addEdge("synthesize", END)
 
   .compile();
-
 async function main() {
   const result = await graph.invoke({
     messages: [
