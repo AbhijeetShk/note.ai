@@ -17,3 +17,7 @@ export const PlanSchema = z.object({
     })
   ),
 });
+
+export const RewriteSchema = z.object({
+  queries: z.array(z.string()),
+});

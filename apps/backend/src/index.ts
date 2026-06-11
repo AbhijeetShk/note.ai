@@ -12,6 +12,8 @@ import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_doc
 import { z } from "zod";
 import "./compare.js";
 import { tool } from "@langchain/core/tools";
+import { GraphState } from "./types/state.js";
+import { RewriteSchema } from "./planner/schema.js";
 
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
@@ -248,6 +250,68 @@ export async function generateFromContext(
   return {
     ...response,
     mode,
+  };
+}
+
+export async function queryRewrite(
+  state: typeof GraphState.State
+) {
+  const question =
+    state.messages.at(-1)?.content || "";
+
+  const structured =
+    llm.withStructuredOutput(
+      RewriteSchema 
+    );
+
+  const result =
+    await structured.invoke(`
+Generate 3 semantic search variations.
+
+Question:
+${question}
+`);
+
+  return {
+    rewrittenQueries: [
+      question,
+      ...result.queries,
+    ],
+  };
+}
+
+export async function multiRetrieve(
+  state: typeof GraphState.State
+) {
+  const results =
+    await Promise.all(
+      state.rewrittenQueries.map(
+        (query) =>
+          retrieveHybrid(
+            query,
+            state.retrievalMode
+          )
+      )
+    );
+
+  const docs =
+    results.flat();
+
+  const deduped =
+    Array.from(
+      new Map(
+        docs.map(
+          (doc) => [
+            doc.pageContent,
+            doc,
+          ]
+        )
+      ).values()
+    );
+
+  return {
+    retrievedDocs:
+      deduped,
   };
 }
 async function main() {

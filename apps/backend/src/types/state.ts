@@ -66,4 +66,8 @@ export const GraphState = Annotation.Root({
   reducer: (_, update) => update,
   default: () => "done",
 }),
+rewrittenQueries: Annotation<string[]>({
+  reducer: (_, update) => update,
+  default: () => [],
+}),
 });
