@@ -4,6 +4,7 @@ import {
   generateFromContext,
   generateFromDocs,
   llm,
+  queryRewrite,
   retrieveHybrid,
 } from "../index.js";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import { tool } from "@langchain/core/tools";
 import { planner } from "../planner/planner.js";
 import { executeTools } from "../tools/executor.js";
 import { GraphState } from "../types/state.js";
+import { RetrievalGradeSchema } from "../planner/schema.js";
 dotenv.config();
 
 type Message = {
@@ -59,23 +61,23 @@ async function retrieve(state: typeof GraphState.State) {
   };
 }
 
-async function gradeRetrieval(state: typeof GraphState.State) {
-  const docs = state.rerankedDocs;
+// async function gradeRetrieval(state: typeof GraphState.State) {
+//   const docs = state.rerankedDocs;
 
-  if (
-    !docs ||
-    docs.length === 0 ||
-    docs.every((doc) => !doc.pageContent || doc.pageContent.length < 20)
-  ) {
-    return {
-      retrievalQuality: "bad",
-    };
-  }
+//   if (
+//     !docs ||
+//     docs.length === 0 ||
+//     docs.every((doc) => !doc.pageContent || doc.pageContent.length < 20)
+//   ) {
+//     return {
+//       retrievalQuality: "bad",
+//     };
+//   }
 
-  return {
-    retrievalQuality: "good",
-  };
-}
+//   return {
+//     retrievalQuality: "good",
+//   };
+// }
 // async function synthesize(state: typeof GraphState.State) {
 //   const question = state.messages[state.messages.length - 1]?.content || "";
 //   const docs = state.compressedContext;
@@ -148,54 +150,116 @@ async function compressContext(state: typeof GraphState.State) {
     compressedContext: compressed,
   };
 }
+export async function gradeRetrieval(
+  state: typeof GraphState.State
+) {
+  const question =
+    state.messages.at(-1)?.content || "";
+
+  const context =
+    state.rerankedDocs
+      .map(
+        d => d.pageContent
+      )
+      .join("\n\n");
+
+  const structured =
+    llm.withStructuredOutput(
+      RetrievalGradeSchema
+    );
+
+  const result =
+    await structured.invoke(`
+Question:
+${question}
+
+Retrieved Context:
+${context}
+
+Evaluate whether the
+retrieved information is
+sufficient to answer the question.
+`);
+
+  return {
+    retrievalQuality:
+      result.sufficient
+        ? "good"
+        : "bad",
+
+    retrievalScore:
+      result.score,
+  };
+}
+function retrievalRouter(
+  state: typeof GraphState.State
+) {
+  if (
+    state.retrievalQuality === "good"
+  ) {
+    return "planner";
+  }
+
+  if (
+    state.retryCount >= 2
+  ) {
+    return "planner";
+  }
+
+  return "retry";
+}
+async function retryRetrieval(
+  state: typeof GraphState.State
+) {
+  return {
+    retryCount:
+      state.retryCount + 1,
+  };
+}
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
 
-  // RAG pipeline
+  .addNode("query_rewrite", queryRewrite)
   .addNode("retrieve", retrieve)
   .addNode("rerank", rerankDocuments)
   .addNode("compress_context", compressContext)
   .addNode("grade_retrieval", gradeRetrieval)
+  .addNode("retry_retrieval", retryRetrieval)
 
-  // Clarification
   .addNode("clarify", clarify)
 
-  // Agent layer
   .addNode("planner", planner)
   .addNode("execute_tools", executeTools)
 
-  // Final response
   .addNode("synthesize", synthesize)
 
-  // Entry
   .addEdge(START, "classify")
 
-  // Routing
   .addConditionalEdges("classify", (state) => state.route, {
-    simple_rag: "retrieve",
-    deep_rag: "retrieve",
+    simple_rag: "query_rewrite",
+    deep_rag: "query_rewrite",
     clarify: "clarify",
   })
 
-  // Retrieval pipeline
+  .addEdge("query_rewrite", "retrieve")
   .addEdge("retrieve", "rerank")
   .addEdge("rerank", "compress_context")
   .addEdge("compress_context", "grade_retrieval")
 
-  // Retrieval quality gate
   .addConditionalEdges(
     "grade_retrieval",
-    (state) => state.retrievalQuality,
+    retrievalRouter,
     {
-      good: "planner",
-      bad: "clarify",
+      retry: "retry_retrieval",
+      planner: "planner",
+      clarify: "clarify",
     }
   )
 
-  // Agent planning
+  .addEdge("retry_retrieval", "query_rewrite")
+
   .addEdge("planner", "execute_tools")
 
-  // Tool execution loop
   .addConditionalEdges(
     "execute_tools",
     (state) => state.toolStatus,
@@ -205,6 +269,7 @@ export const graph = new StateGraph(GraphState)
     }
   )
 
+  .addEdge("clarify", END)
   .addEdge("synthesize", END)
 
   .compile();

@@ -70,4 +70,12 @@ rewrittenQueries: Annotation<string[]>({
   reducer: (_, update) => update,
   default: () => [],
 }),
+retrievalScore: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
+retryCount: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
 });
