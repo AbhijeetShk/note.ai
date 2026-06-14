@@ -13,6 +13,7 @@ import { planner } from "../planner/planner.js";
 import { executeTools } from "../tools/executor.js";
 import { GraphState } from "../types/state.js";
 import { RetrievalGradeSchema } from "../planner/schema.js";
+import { extractCitations } from "../retrieval/citations.js";
 dotenv.config();
 
 type Message = {
@@ -124,8 +125,15 @@ Create final answer.
   const result = await llm.invoke(prompt);
 
   return {
-    synthesis: String(result.content),
-  };
+  synthesis: String(result.content),
+
+  messages: [
+    {
+      role: "assistant",
+      content: String(result.content),
+    },
+  ],
+};
 }
 async function rerankDocuments(state: typeof GraphState.State) {
   const docs = state.retrievedDocs;
@@ -229,7 +237,10 @@ export const graph = new StateGraph(GraphState)
   .addNode("clarify", clarify)
 
   .addNode("planner", planner)
-  .addNode("execute_tools", executeTools)
+  .addNode("execute_tools", executeTools).addNode(
+  "extract_citations",
+  extractCitations
+)
 
   .addNode("synthesize", synthesize)
 
@@ -260,15 +271,19 @@ export const graph = new StateGraph(GraphState)
 
   .addEdge("planner", "execute_tools")
 
-  .addConditionalEdges(
-    "execute_tools",
-    (state) => state.toolStatus,
-    {
-      continue: "planner",
-      done: "synthesize",
-    }
-  )
+ .addConditionalEdges(
+  "execute_tools",
+  (state) => state.toolStatus,
+  {
+    continue: "planner",
+    done: "extract_citations",
+  }
+)
 
+.addEdge(
+  "extract_citations",
+  "synthesize"
+)
   .addEdge("clarify", END)
   .addEdge("synthesize", END)
 

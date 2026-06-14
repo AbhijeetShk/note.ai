@@ -78,4 +78,14 @@ retryCount: Annotation<number>({
   reducer: (_, update) => update,
   default: () => 0,
 }),
+citations: Annotation<
+  {
+    source: string;
+    page: number | null;
+    chunkId: number | null;
+  }[]
+>({
+  reducer: (_, update) => update,
+  default: () => [],
+}),
 });
