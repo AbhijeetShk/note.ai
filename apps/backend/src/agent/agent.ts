@@ -14,6 +14,7 @@ import { executeTools } from "../tools/executor.js";
 import { GraphState } from "../types/state.js";
 import { RetrievalGradeSchema } from "../planner/schema.js";
 import { extractCitations } from "../retrieval/citations.js";
+import { verifyCitations } from "../grounding/verifyCitations.js";
 dotenv.config();
 
 type Message = {
@@ -241,8 +242,11 @@ export const graph = new StateGraph(GraphState)
   "extract_citations",
   extractCitations
 )
+  .addNode("synthesize", synthesize).addNode(
+  "verify_citations",
+  verifyCitations
+)
 
-  .addNode("synthesize", synthesize)
 
   .addEdge(START, "classify")
 
@@ -285,7 +289,15 @@ export const graph = new StateGraph(GraphState)
   "synthesize"
 )
   .addEdge("clarify", END)
-  .addEdge("synthesize", END)
+  .addEdge(
+  "synthesize",
+  "verify_citations"
+)
+
+.addEdge(
+  "verify_citations",
+  END
+)
 
   .compile();
 async function main() {
@@ -299,6 +311,9 @@ async function main() {
   });
 
   console.log(result.synthesis);
+  console.log(
+  result.citationVerification
+);
 }
 
 main();

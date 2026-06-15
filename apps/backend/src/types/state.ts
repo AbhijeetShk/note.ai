@@ -88,4 +88,12 @@ citations: Annotation<
   reducer: (_, update) => update,
   default: () => [],
 }),
+citationVerification: Annotation<{
+  supported: boolean;
+  reasoning: string;
+  unsupportedClaims: string[];
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
 });
