@@ -15,6 +15,8 @@ import { GraphState } from "../types/state.js";
 import { RetrievalGradeSchema } from "../planner/schema.js";
 import { extractCitations } from "../retrieval/citations.js";
 import { verifyCitations } from "../grounding/verifyCitations.js";
+import { hallucinationCheck } from "../grounding/hallucinationCheck.js";
+import { gradeResponse } from "../gradeResponse/responseGrade.js";
 dotenv.config();
 
 type Message = {
@@ -225,6 +227,14 @@ async function retryRetrieval(
       state.retryCount + 1,
   };
 }
+export async function reflect(
+  state: any
+) {
+  return {
+    reflectionCount:
+      state.reflectionCount + 1,
+  };
+}
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
 
@@ -245,6 +255,12 @@ export const graph = new StateGraph(GraphState)
   .addNode("synthesize", synthesize).addNode(
   "verify_citations",
   verifyCitations
+).addNode(
+  "hallucination_check",
+  hallucinationCheck
+).addNode(
+  "grade_response",
+  gradeResponse
 )
 
 
@@ -289,13 +305,23 @@ export const graph = new StateGraph(GraphState)
   "synthesize"
 )
   .addEdge("clarify", END)
-  .addEdge(
+.addEdge(
   "synthesize",
   "verify_citations"
 )
 
 .addEdge(
   "verify_citations",
+  "hallucination_check"
+)
+
+.addEdge(
+  "hallucination_check",
+  "grade_response"
+)
+
+.addEdge(
+  "grade_response",
   END
 )
 
@@ -313,6 +339,9 @@ async function main() {
   console.log(result.synthesis);
   console.log(
   result.citationVerification
+);
+console.log(
+  result.hallucinationCheck
 );
 }
 

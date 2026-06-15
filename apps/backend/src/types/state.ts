@@ -96,4 +96,27 @@ citationVerification: Annotation<{
   reducer: (_, update) => update,
   default: () => null,
 }),
+hallucinationCheck: Annotation<{
+  hallucinated: boolean;
+  confidence: number;
+  reasoning: string;
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
+responseGrade: Annotation<{
+  correctness: number;
+  completeness: number;
+  clarity: number;
+  grounding: number;
+  finalScore: number;
+  reasoning: string;
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
+reflectionCount: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
 });
