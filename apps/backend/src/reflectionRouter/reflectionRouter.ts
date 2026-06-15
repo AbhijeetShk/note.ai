@@ -1,4 +1,4 @@
-function reflectionRouter(
+export function reflectionRouter(
   state: any
 ) {
   if (

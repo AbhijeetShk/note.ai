@@ -17,6 +17,8 @@ import { extractCitations } from "../retrieval/citations.js";
 import { verifyCitations } from "../grounding/verifyCitations.js";
 import { hallucinationCheck } from "../grounding/hallucinationCheck.js";
 import { gradeResponse } from "../gradeResponse/responseGrade.js";
+import { improveAnswer } from "../grounding/improveAnswer.js";
+import { reflectionRouter } from "../reflectionRouter/reflectionRouter.js";
 dotenv.config();
 
 type Message = {
@@ -261,6 +263,9 @@ export const graph = new StateGraph(GraphState)
 ).addNode(
   "grade_response",
   gradeResponse
+).addNode(
+  "improve_answer",
+  improveAnswer
 )
 
 
@@ -317,6 +322,19 @@ export const graph = new StateGraph(GraphState)
 
 .addEdge(
   "hallucination_check",
+  "grade_response"
+).addConditionalEdges(
+  "grade_response",
+  reflectionRouter,
+  {
+    improve:
+      "improve_answer",
+
+    done:
+      END,
+  }
+).addEdge(
+  "improve_answer",
   "grade_response"
 )
 
