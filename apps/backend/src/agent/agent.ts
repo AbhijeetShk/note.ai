@@ -428,6 +428,12 @@ async function main() {
         content: "Explain quantum computing in simple words",
       },
     ],
+  },
+  {
+    configurable: {
+      thread_id: crypto.randomUUID(),
+    },
+    runName: "agent-query",
   });
 
 //   console.log(result.synthesis);

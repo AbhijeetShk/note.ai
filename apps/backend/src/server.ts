@@ -14,6 +14,11 @@ app.post("/runs/stream", async (req, res) => {
 
   const result = await graph.invoke({
     messages: [{ role: "user", content: input }],
+  },    {
+    configurable: {
+      thread_id: crypto.randomUUID(),
+    },
+    runName: "agent-query",
   });
 
   res.json(result);
@@ -28,7 +33,13 @@ console.log("Received message:", message);
       content: message,
     },
   ],
-});
+},
+  {
+    configurable: {
+      thread_id: crypto.randomUUID(),
+    },
+    runName: "agent-query",
+  });
 
   res.json(result);
 });
