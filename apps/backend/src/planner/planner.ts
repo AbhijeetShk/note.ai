@@ -7,6 +7,7 @@ import { GraphState } from "../types/state.js";
 export async function planner(
   state: typeof GraphState.State
 ) {
+  // console.log("ENTERING planner");
   const question =
     state.messages[
       state.messages.length - 1
@@ -28,7 +29,7 @@ export async function planner(
         content: question,
       },
     ]);
-
+// console.log("PLAN GENERATED:", plan);
 return {
   plan: plan.steps.map(
     (s) => s.task

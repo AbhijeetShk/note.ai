@@ -17,6 +17,7 @@ const supabase = createClient(
 
 const embeddings = new HuggingFaceInferenceEmbeddings({
   apiKey: process.env.HUGGINGFACEHUB_API_KEY,
+    model: "BAAI/bge-base-en-v1.5"
 });
 
 const llm = new ChatGroq({
@@ -157,16 +158,16 @@ async function compare(question: string) {
     runRerank(question),
   ]);
 
-  console.log("\nQUESTION:");
-  console.log(question);
+  // console.log("\n question:");
+  // console.log(question);
 
   for (const r of runs) {
     console.log("\n==================================================");
     console.log(r.method);
     console.log("--------------------------------------------------");
-    console.log("TOP CHUNKS:");
+    console.log("top chunks:");
     console.log(printDocs(r.docs));
-    console.log("\nANSWER:");
+    console.log("\nanswer:");
     console.log(r.ans);
   }
 }
@@ -177,4 +178,4 @@ async function main() {
   );
 }
 
-main();
+// main();

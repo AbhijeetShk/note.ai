@@ -20,7 +20,7 @@ app.post("/runs/stream", async (req, res) => {
 });
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
-
+console.log("Received message:", message);
   const result = await graph.invoke({
   messages: [
     {

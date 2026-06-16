@@ -4,6 +4,7 @@ import { tools } from "./index.js";
 export async function executeTools(
   state: typeof GraphState.State
 ) {
+  // console.log("ENTERING executeTools");
   const observations = [];
 
   for (

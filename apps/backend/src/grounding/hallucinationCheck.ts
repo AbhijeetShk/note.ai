@@ -1,10 +1,11 @@
-import { llm } from "../index.js";
+import { graderLLM, llm } from "../index.js";
 import { HallucinationSchema }
 from "./hallucinationSchema.js";
 
 export async function hallucinationCheck(
   state: any
 ) {
+  // console.log("ENTERING hallucinationCheck");
   const question =
     state.messages.at(-1)?.content ?? "";
 

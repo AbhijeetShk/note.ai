@@ -1,10 +1,12 @@
-import { llm } from "../index.js";
+import { graderLLM, llm } from "../index.js";
 import { CitationVerificationSchema }
 from "./schema.js";
 
 export async function verifyCitations(
   state: any
 ) {
+  
+  // console.log("ENTERING verifyCitations");
   const question =
     state.messages.at(-1)?.content ?? "";
 
@@ -13,6 +15,15 @@ export async function verifyCitations(
 
   const answer =
     state.synthesis;
+// console.log(
+//   "ANSWER LENGTH:",
+//   answer.length
+// );
+
+// console.log(
+//   "CONTEXT LENGTH:",
+//   context.length
+// );
 
   const structured =
     llm.withStructuredOutput(

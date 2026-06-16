@@ -29,10 +29,26 @@ const supabase = createClient(
 
 const embeddings = new HuggingFaceInferenceEmbeddings({
   apiKey: process.env.HUGGINGFACEHUB_API_KEY,
+  model: "BAAI/bge-base-en-v1.5",
 });
 
+// for query_rewrite
+// planner
+// synthesize
+// improve_answer, use 70b model for these tasks, as they require more reasoning and context understanding
 export const llm = new ChatGroq({
   model: "llama-3.3-70b-versatile",
+  temperature: 0,
+  apiKey: process.env.GROQ_KEY,
+});
+
+
+//for low level tasks - gradeRetrieval
+// hallucinationCheck
+// verifyCitations
+// gradeResponse - use 8b model for grading, 70b model is too expensive for grading tasks
+export const graderLLM = new ChatGroq({ 
+  model: "llama-3.1-8b-instant",
   temperature: 0,
   apiKey: process.env.GROQ_KEY,
 });
@@ -229,23 +245,16 @@ async function evaluate(question: string, answer: string, docs: any[]) {
 export async function generateFromContext(
   question: string,
   context: string,
-  mode: Mode = "balanced"
+  mode: Mode = "balanced",
 ) {
-  const structuredLlm =
-    llm.withStructuredOutput(
-      AnswerSchema
-    );
+  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
 
-  const formattedPrompt =
-    await ragPrompt.formatMessages({
-      context,
-      input: question,
-    });
+  const formattedPrompt = await ragPrompt.formatMessages({
+    context,
+    input: question,
+  });
 
-  const response =
-    await structuredLlm.invoke(
-      formattedPrompt
-    );
+  const response = await structuredLlm.invoke(formattedPrompt);
 
   return {
     ...response,
@@ -253,19 +262,12 @@ export async function generateFromContext(
   };
 }
 
-export async function queryRewrite(
-  state: typeof GraphState.State
-) {
-  const question =
-    state.messages.at(-1)?.content || "";
+export async function queryRewrite(state: typeof GraphState.State) {
+  const question = state.messages.at(-1)?.content || "";
 
-  const structured =
-    llm.withStructuredOutput(
-      RewriteSchema 
-    );
+  const structured = llm.withStructuredOutput(RewriteSchema);
 
-  const result =
-    await structured.invoke(`
+  const result = await structured.invoke(`
 Generate 3 semantic search variations.
 
 Question:
@@ -273,45 +275,25 @@ ${question}
 `);
 
   return {
-    rewrittenQueries: [
-      question,
-      ...result.queries,
-    ],
+    rewrittenQueries: [question, ...result.queries],
   };
 }
 
-export async function multiRetrieve(
-  state: typeof GraphState.State
-) {
-  const results =
-    await Promise.all(
-      state.rewrittenQueries.map(
-        (query) =>
-          retrieveHybrid(
-            query,
-            state.retrievalMode
-          )
-      )
-    );
+export async function multiRetrieve(state: typeof GraphState.State) {
+  const results = await Promise.all(
+    state.rewrittenQueries.map((query) =>
+      retrieveHybrid(query, state.retrievalMode),
+    ),
+  );
 
-  const docs =
-    results.flat();
+  const docs = results.flat();
 
-  const deduped =
-    Array.from(
-      new Map(
-        docs.map(
-          (doc) => [
-            doc.pageContent,
-            doc,
-          ]
-        )
-      ).values()
-    );
+  const deduped = Array.from(
+    new Map(docs.map((doc) => [doc.pageContent, doc])).values(),
+  );
 
   return {
-    retrievedDocs:
-      deduped,
+    retrievedDocs: deduped,
   };
 }
 async function main() {
@@ -333,4 +315,4 @@ async function main() {
   console.log(await evaluate(question, result.answer, result.docs));
 }
 
-main();
+// main();

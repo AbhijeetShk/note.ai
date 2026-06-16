@@ -1,10 +1,11 @@
-import { llm } from "../index.js";
+import { graderLLM, llm } from "../index.js";
 import { ResponseGradeSchema }
 from "./schema.js";
 
 export async function gradeResponse(
   state: any
 ) {
+  // console.log("ENTERING gradeResponse");
   const question =
     state.messages.at(-1)?.content ?? "";
 
@@ -15,7 +16,7 @@ export async function gradeResponse(
     state.compressedContext;
 
   const structured =
-    llm.withStructuredOutput(
+    graderLLM.withStructuredOutput(
       ResponseGradeSchema
     );
 
@@ -39,7 +40,10 @@ Evaluate:
 
 Return scores from 1-10.
 `);
-
+// console.log(
+//   "FINAL SCORE gradeResponse():",
+//   result.finalScore
+// );
   return {
     responseGrade:
       result,
