@@ -120,5 +120,27 @@ reflectionCount: Annotation<number>({
   default: () => 0,
   
 }),
+nextAction: Annotation<{
+  tool:
+    | "search_documents"
+    | "calculator"
+    | "finish";
+
+  input: string;
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
+reasoningTrace: Annotation<string[]>({
+  reducer: (state, update) => [
+    ...state,
+    ...update,
+  ],
+  default: () => [],
+}),
+iterationCount: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
 
 });

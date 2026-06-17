@@ -1,41 +1,52 @@
 import { GraphState } from "../types/state.js";
 import { tools } from "./index.js";
-
 export async function executeTools(
   state: typeof GraphState.State
 ) {
-  // console.log("ENTERING executeTools");
-  const observations = [];
+  const action =
+    state.nextAction;
 
-  for (
-    const call of state.toolCalls
+  if (
+    !action ||
+    action.tool === "finish"
   ) {
-    if (
-      call.tool === "none"
-    )
-      continue;
+    return {};
+  }
 
-    if (call.tool === "search_documents") {
-  const result =
-    await tools.search_documents.invoke({
-      query: call.input,
-    });
+  let result = "";
 
-  observations.push({
-    tool: call.tool,
-    result,
-  });
-}
+  if (
+    action.tool ===
+    "search_documents"
+  ) {
+    result =
+      await tools.search_documents.invoke({
+        query:
+          action.input,
+      });
+  }
 
-if (call.tool === "calculator") {
-  const result =
-    await tools.calculator.invoke({
-      expression: call.input,
-    });
+  if (
+    action.tool ===
+    "calculator"
+  ) {
+    result =
+      await tools.calculator.invoke({
+        expression:
+          action.input,
+      });
+  }
 
-  observations.push({
-    tool: call.tool,
-    result,
-  });
-}}
+  return {
+    observations: [
+      {
+        tool:
+          action.tool,
+        result,
+      },
+    ],
+
+    iterationCount:
+      state.iterationCount + 1,
+  };
 }

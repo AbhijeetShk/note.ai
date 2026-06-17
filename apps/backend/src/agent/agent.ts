@@ -20,6 +20,8 @@ import { hallucinationCheck } from "../grounding/hallucinationCheck.js";
 import { gradeResponse } from "../gradeResponse/responseGrade.js";
 import { improveAnswer } from "../grounding/improveAnswer.js";
 import { reflectionRouter } from "../reflectionRouter/reflectionRouter.js";
+import { reason } from "../ReAct/reasonNode.js";
+import { reactRouter } from "../ReAct/reactRouter.js";
 dotenv.config();
 
 type Message = {
@@ -327,9 +329,10 @@ export const graph = new StateGraph(GraphState)
   .addNode("grade_retrieval", gradeRetrieval)
   .addNode("retry_retrieval", retryRetrieval)
 
-  .addNode("clarify", clarify)
-
-  .addNode("planner", planner)
+  .addNode("clarify", clarify).addNode(
+  "reason",
+  reason
+)
   .addNode("execute_tools", executeTools).addNode(
   "extract_citations",
   extractCitations
@@ -362,27 +365,31 @@ export const graph = new StateGraph(GraphState)
   .addEdge("rerank", "compress_context")
   .addEdge("compress_context", "grade_retrieval")
 
-  .addConditionalEdges(
-    "grade_retrieval",
-    retrievalRouter,
-    {
-      retry: "retry_retrieval",
-      planner: "planner",
-      clarify: "clarify",
-    }
-  )
+ .addConditionalEdges(
+  "grade_retrieval",
+  retrievalRouter,
+  {
+    retry: "retry_retrieval",
+    planner: "reason",
+    clarify: "clarify",
+  }
+)
 
   .addEdge("retry_retrieval", "query_rewrite")
 
-  .addEdge("planner", "execute_tools")
-
- .addConditionalEdges(
-  "execute_tools",
-  (state) => state.toolStatus,
+.addConditionalEdges(
+  "reason",
+  reactRouter,
   {
-    continue: "planner",
-    done: "extract_citations",
+    execute_tools:
+      "execute_tools",
+
+    synthesize:
+      "synthesize",
   }
+).addEdge(
+  "execute_tools",
+  "reason"
 )
 
 .addEdge(
