@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { retrieveHybrid } from "../index.js";
-
+import { retrieveMemory } from "../memory/retrieve-memory.js";
 export const calculatorTool = tool(
   async ({ expression }) => {
     try {
@@ -61,20 +61,22 @@ export const searchTool = tool(
   },
 );
 export const memorySearchTool = tool(
-  async ({ query }) => {
-    return JSON.stringify([
-      {
-        memory: "User is building a frontier AI agent platform",
-      },
-    ]);
+  async ({ query, userId }) => {
+    const memories = await retrieveMemory(query, userId);
+
+    return JSON.stringify(
+      memories.map((m) => ({
+        memory: m.pageContent,
+      })),
+    );
   },
   {
     name: "memory_search",
-
     description: "Search long-term memories.",
 
     schema: z.object({
       query: z.string(),
+      userId: z.string(),
     }),
   },
 );

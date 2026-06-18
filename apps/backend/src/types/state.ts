@@ -166,4 +166,8 @@ actionHistory: Annotation<
   ],
   default: () => [],
 }),
+userId: Annotation<string>({
+  reducer: (_, update) => update,
+  default: () => "",
+}),
 });

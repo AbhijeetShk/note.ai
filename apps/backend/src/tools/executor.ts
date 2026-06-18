@@ -1,3 +1,4 @@
+import { retrieveMemory } from "../memory/retrieve-memory.js";
 import { GraphState } from "../types/state.js";
 import { tools } from "./index.js";
 export async function executeTools(state: typeof GraphState.State) {
@@ -37,20 +38,22 @@ let status:
     }
   }
 
-  if (
+if (
   action.tool ===
   "memory_search"
 ) {
- try {
-      result = await tools.memory_search.invoke({
+  try {
+    result =
+      await tools.memory_search.invoke({
         query: action.input,
+        userId: state.userId,
       });
-    } catch (error) {
-        status = "error";
+  } catch (error) {
+    status = "error";
 
-  
-      result = `TOOL_ERROR: ${String(error)}`;
-    }
+    result =
+      `TOOL_ERROR: ${String(error)}`;
+  }
 }
 
   return {

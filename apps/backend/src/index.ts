@@ -22,12 +22,12 @@ const AnswerSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
-const supabase = createClient(
+export const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_ANON_KEY!,
 );
 
-const embeddings = new HuggingFaceInferenceEmbeddings({
+export const embeddings = new HuggingFaceInferenceEmbeddings({
   apiKey: process.env.HUGGINGFACEHUB_API_KEY,
   model: "BAAI/bge-base-en-v1.5",
 });

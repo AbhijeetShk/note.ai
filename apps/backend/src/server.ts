@@ -15,7 +15,8 @@ app.post("/runs/stream", async (req, res) => {
   const { input } = req.body;
 
   const result = await graph.invoke({
-    messages: [{ role: "user", content: input }],
+    messages: [{ role: "user", content: input }], userId:
+  req.body.userId,
   },    {
    configurable: {
         thread_id:
