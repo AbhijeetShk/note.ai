@@ -8,6 +8,7 @@ export const ReActSchema = z.object({
   action: z.enum([
     "search_documents",
     "calculator",
+    "memory_search",
     "finish",
   ]),
 

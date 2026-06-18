@@ -45,7 +45,17 @@ search_documents
 - Use when information is missing
 
 calculator
-- Perform mathematical calculations
+- Evaluate mathematical expressions
+- Input should be only a valid expression
+- Examples:
+  2+2
+  (15*8)/3
+  sqrt(144)
+
+memory_search
+- Retrieve relevant memories
+- Use when previous user context
+  may help answer the question
 
 finish
 - Use only when sufficient information exists

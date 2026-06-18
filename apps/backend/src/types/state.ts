@@ -128,6 +128,7 @@ nextAction: Annotation<{
   tool:
     | "search_documents"
     | "calculator"
+    | "memory_search"
     | "finish";
 
   input: string;

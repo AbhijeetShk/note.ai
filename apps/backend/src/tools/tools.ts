@@ -5,9 +5,7 @@ import { retrieveHybrid } from "../index.js";
 export const calculatorTool = tool(
   async ({ expression }) => {
     try {
-      const result = Function(
-        `"use strict"; return (${expression})`
-      )();
+      const result = Function(`"use strict"; return (${expression})`)();
 
       return String(result);
     } catch {
@@ -20,10 +18,8 @@ export const calculatorTool = tool(
     schema: z.object({
       expression: z.string(),
     }),
-  }
+  },
 );
-
-
 
 const retrievePdfTool = tool(
   async ({ query }) => {
@@ -45,32 +41,46 @@ const retrievePdfTool = tool(
   },
 );
 
-
 export const searchTool = tool(
   async ({ query }) => {
-    const docs =
-      await retrieveHybrid(
-        query,
-        "balanced"
-      );
+    const docs = await retrieveHybrid(query, "balanced");
 
     return JSON.stringify(
-      docs.map(d => ({
+      docs.map((d) => ({
         content: d.pageContent,
         source: d.metadata.source,
-      }))
+      })),
     );
   },
   {
     name: "search_documents",
-    description:
-      "Search indexed documents",
+    description: "Search indexed documents",
     schema: z.object({
       query: z.string(),
     }),
-  }
+  },
 );
+export const memorySearchTool = tool(
+  async ({ query }) => {
+    return JSON.stringify([
+      {
+        memory: "User is building a frontier AI agent platform",
+      },
+    ]);
+  },
+  {
+    name: "memory_search",
+
+    description: "Search long-term memories.",
+
+    schema: z.object({
+      query: z.string(),
+    }),
+  },
+);
+
 export const tools = {
   search_documents: searchTool,
   calculator: calculatorTool,
+  memory_search: memorySearchTool,
 };

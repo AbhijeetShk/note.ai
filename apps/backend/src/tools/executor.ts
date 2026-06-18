@@ -28,14 +28,30 @@ let status:
 
   if (action.tool === "calculator") {
     try {
-      result = await tools.search_documents.invoke({
-        query: action.input,
+      result = await tools.calculator.invoke({
+         expression: action.input,
       });
     } catch (error) {
        status = "error";
       result = `TOOL_ERROR: ${String(error)}`;
     }
   }
+
+  if (
+  action.tool ===
+  "memory_search"
+) {
+ try {
+      result = await tools.memory_search.invoke({
+        query: action.input,
+      });
+    } catch (error) {
+        status = "error";
+
+  
+      result = `TOOL_ERROR: ${String(error)}`;
+    }
+}
 
   return {
     actionHistory: [
