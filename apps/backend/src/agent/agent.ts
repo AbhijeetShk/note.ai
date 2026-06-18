@@ -113,13 +113,14 @@ async function synthesize(state: typeof GraphState.State) {
   // console.log("ENTERING synthesize");
   const question = state.messages.at(-1)?.content || "";
 
-  const observations = state.observations
+  const observations =
+  state.observations
     .map(
-      (o) =>
-        `[${o.tool}]
-${o.result}`,
+      o =>
+        `[${o.status}]
+${o.tool}: ${o.result}`
     )
-    .join("\n\n");
+    .join("\n");
 
   const prompt = `
 Question:

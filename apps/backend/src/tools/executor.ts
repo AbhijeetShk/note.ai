@@ -1,52 +1,58 @@
 import { GraphState } from "../types/state.js";
 import { tools } from "./index.js";
-export async function executeTools(
-  state: typeof GraphState.State
-) {
-  const action =
-    state.nextAction;
+export async function executeTools(state: typeof GraphState.State) {
+  const action = state.nextAction;
 
-  if (
-    !action ||
-    action.tool === "finish"
-  ) {
+  if (!action || action.tool === "finish") {
     return {};
   }
 
-  let result = "";
+let result = "";
 
-  if (
-    action.tool ===
-    "search_documents"
-  ) {
-    result =
-      await tools.search_documents.invoke({
-        query:
-          action.input,
+let status:
+  | "success"
+  | "error" = "success";
+
+  if (action.tool === "search_documents") {
+    try {
+      result = await tools.search_documents.invoke({
+        query: action.input,
       });
+    } catch (error) {
+        status = "error";
+
+  
+      result = `TOOL_ERROR: ${String(error)}`;
+    }
   }
 
-  if (
-    action.tool ===
-    "calculator"
-  ) {
-    result =
-      await tools.calculator.invoke({
-        expression:
-          action.input,
+  if (action.tool === "calculator") {
+    try {
+      result = await tools.search_documents.invoke({
+        query: action.input,
       });
+    } catch (error) {
+       status = "error";
+      result = `TOOL_ERROR: ${String(error)}`;
+    }
   }
 
   return {
-    observations: [
+    actionHistory: [
       {
-        tool:
-          action.tool,
-        result,
+        tool: action.tool,
+        input: action.input,
       },
     ],
 
-    iterationCount:
-      state.iterationCount + 1,
+observations: [
+  {
+    tool: action.tool,
+    status,
+    result,
+  },
+],
+
+    iterationCount: state.iterationCount + 1,
   };
 }

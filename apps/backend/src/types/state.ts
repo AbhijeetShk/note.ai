@@ -53,15 +53,19 @@ export const GraphState = Annotation.Root({
     default: () => [],
   }),
 
-  observations: Annotation<
-    {
-      tool: string;
-      result: string;
-    }[]
-  >({
-    reducer: (_, update) => update,
-    default: () => [],
-  }),
+observations: Annotation<
+  {
+    tool: string;
+    status: "success" | "error";
+    result: string;
+  }[]
+>({
+  reducer: (state, update) => [
+    ...state,
+    ...update,
+  ],
+  default: () => [],
+}),
   toolStatus: Annotation<"continue" | "done">({
   reducer: (_, update) => update,
   default: () => "done",
@@ -131,7 +135,14 @@ nextAction: Annotation<{
   reducer: (_, update) => update,
   default: () => null,
 }),
-reasoningTrace: Annotation<string[]>({
+reasoningTrace: Annotation<
+  {
+    thought: string;
+    action: string;
+    input: string;
+    confidence?: number;
+  }[]
+>({
   reducer: (state, update) => [
     ...state,
     ...update,
@@ -142,5 +153,16 @@ iterationCount: Annotation<number>({
   reducer: (_, update) => update,
   default: () => 0,
 }),
-
+actionHistory: Annotation<
+  {
+    tool: string;
+    input: string;
+  }[]
+>({
+  reducer: (state, update) => [
+    ...state,
+    ...update,
+  ],
+  default: () => [],
+}),
 });
