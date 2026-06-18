@@ -3,11 +3,13 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { graph} from "./agent/agent.js";
 
+
 dotenv.config();
-    // "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
+// "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 
 app.post("/runs/stream", async (req, res) => {
   const { input } = req.body;
@@ -15,9 +17,10 @@ app.post("/runs/stream", async (req, res) => {
   const result = await graph.invoke({
     messages: [{ role: "user", content: input }],
   },    {
-    configurable: {
-      thread_id: crypto.randomUUID(),
-    },
+   configurable: {
+        thread_id:
+          req.body.threadId,
+      },
     runName: "agent-query",
   });
 
@@ -35,9 +38,10 @@ console.log("Received message:", message);
   ],
 },
   {
-    configurable: {
-      thread_id: crypto.randomUUID(),
-    },
+   configurable: {
+        thread_id:
+          req.body.threadId,
+      },
     runName: "agent-query",
   });
 

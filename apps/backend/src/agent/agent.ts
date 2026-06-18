@@ -22,13 +22,14 @@ import { improveAnswer } from "../grounding/improveAnswer.js";
 import { reflectionRouter } from "../reflectionRouter/reflectionRouter.js";
 import { reason } from "../ReAct/reasonNode.js";
 import { reactRouter } from "../ReAct/reactRouter.js";
+import { MemorySaver } from "@langchain/langgraph";
 dotenv.config();
 
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
 };
-
+const checkpointer = new MemorySaver();
 async function classify(state: typeof GraphState.State) {
   // console.log("ENTERING classify");
   const question =
@@ -113,12 +114,11 @@ async function synthesize(state: typeof GraphState.State) {
   // console.log("ENTERING synthesize");
   const question = state.messages.at(-1)?.content || "";
 
-  const observations =
-  state.observations
+  const observations = state.observations
     .map(
-      o =>
+      (o) =>
         `[${o.status}]
-${o.tool}: ${o.result}`
+${o.tool}: ${o.result}`,
     )
     .join("\n");
 
@@ -138,15 +138,15 @@ Create final answer.
   const result = await llm.invoke(prompt);
 
   return {
-  synthesis: String(result.content),
+    synthesis: String(result.content),
 
-  messages: [
-    {
-      role: "assistant",
-      content: String(result.content),
-    },
-  ],
-};
+    messages: [
+      {
+        role: "assistant",
+        content: String(result.content),
+      },
+    ],
+  };
 }
 async function rerankDocuments(state: typeof GraphState.State) {
   // console.log("ENTERING rerankDocuments");
@@ -173,16 +173,13 @@ async function rerankDocuments(state: typeof GraphState.State) {
 //     compressedContext: compressed,
 //   };
 // }
-async function compressContext(
-  state: typeof GraphState.State
-) {
-    // console.log("ENTERING compressContext");
-  const context =
-    state.rerankedDocs
-      .slice(0, 5)
-      .map((d) => d.pageContent)
-      .join("\n\n");
-//Compression is a filtering/summarization task, not a high-creativity reasoning task. Therefore use 8b model instead of 70b for cost and latency
+async function compressContext(state: typeof GraphState.State) {
+  // console.log("ENTERING compressContext");
+  const context = state.rerankedDocs
+    .slice(0, 5)
+    .map((d) => d.pageContent)
+    .join("\n\n");
+  //Compression is a filtering/summarization task, not a high-creativity reasoning task. Therefore use 8b model instead of 70b for cost and latency
   const result = await graderLLM.invoke(`
 Compress the following context.
 Keep only facts useful for answering the question.
@@ -195,16 +192,12 @@ ${context}
 `);
 
   return {
-    compressedContext:
-      String(result.content),
+    compressedContext: String(result.content),
   };
 }
-export async function gradeRetrieval(
-  state: typeof GraphState.State
-) {
+export async function gradeRetrieval(state: typeof GraphState.State) {
   // console.log("ENTERING gradeRetrieval");
-  const question =
-    state.messages.at(-1)?.content || "";
+  const question = state.messages.at(-1)?.content || "";
 
   // const context =
   //   state.rerankedDocs
@@ -214,30 +207,26 @@ export async function gradeRetrieval(
   //     .join("\n\n");
 
   //token exhaustion hack - top 3 chunks instead of all chunks
-  
-  const context =
-  state.compressedContext;
 
-  const structured =
-    graderLLM.withStructuredOutput(
-      RetrievalGradeSchema
-    );
+  const context = state.compressedContext;
 
-    //vauge or causing confusion - not providing clear criteria for grading, leading to inconsistent results. Also could lead to token exhaustion with larger contexts
-//   const result =
-//     await structured.invoke(`
-// Question:
-// ${question}
+  const structured = graderLLM.withStructuredOutput(RetrievalGradeSchema);
 
-// Retrieved Context:
-// ${context}
+  //vauge or causing confusion - not providing clear criteria for grading, leading to inconsistent results. Also could lead to token exhaustion with larger contexts
+  //   const result =
+  //     await structured.invoke(`
+  // Question:
+  // ${question}
 
-// Evaluate whether the
-// retrieved information is
-// sufficient to answer the question.
-// `);
+  // Retrieved Context:
+  // ${context}
 
-const result = await structured.invoke(`
+  // Evaluate whether the
+  // retrieved information is
+  // sufficient to answer the question.
+  // `);
+
+  const result = await structured.invoke(`
 Question:
 ${question}
 
@@ -255,69 +244,53 @@ Be generous.
 If the answer can reasonably be produced from the context,
 mark sufficient=true.
 `);
-// console.log(
-//   "retryCount:",
-//   state.retryCount
-// );
+  // console.log(
+  //   "retryCount:",
+  //   state.retryCount
+  // );
 
-// console.log(
-//   "retrievalQuality:",
-//   result.sufficient
-// );
+  // console.log(
+  //   "retrievalQuality:",
+  //   result.sufficient
+  // );
 
-// console.log(
-//   "retrievalScore:",
-//   result.score
-// );
-// console.log(
-//   "reasoning:",
-//   result.reasoning
-// );
-// console.log("GRADE RESULT:", result);
+  // console.log(
+  //   "retrievalScore:",
+  //   result.score
+  // );
+  // console.log(
+  //   "reasoning:",
+  //   result.reasoning
+  // );
+  // console.log("GRADE RESULT:", result);
   return {
-    retrievalQuality:
-      result.sufficient
-        ? "good"
-        : "bad",
+    retrievalQuality: result.sufficient ? "good" : "bad",
 
-    retrievalScore:
-      result.score,
+    retrievalScore: result.score,
   };
 }
-function retrievalRouter(
-  state: typeof GraphState.State
-) {
+function retrievalRouter(state: typeof GraphState.State) {
   // console.log("ENTERING retrievalRouter");
-  if (
-    state.retrievalQuality === "good"
-  ) {
+  if (state.retrievalQuality === "good") {
     return "planner";
   }
 
-  if (
-    state.retryCount >= 2
-  ) {
+  if (state.retryCount >= 2) {
     return "planner";
   }
 
   return "retry";
 }
-async function retryRetrieval(
-  state: typeof GraphState.State
-) {
+async function retryRetrieval(state: typeof GraphState.State) {
   // console.log("ENTERING retryRetrieval");
   return {
-    retryCount:
-      state.retryCount + 1,
+    retryCount: state.retryCount + 1,
   };
 }
-export async function reflect(
-  state: any
-) {
+export async function reflect(state: any) {
   // console.log("ENTERING reflect");
   return {
-    reflectionCount:
-      state.reflectionCount + 1,
+    reflectionCount: state.reflectionCount + 1,
   };
 }
 export const graph = new StateGraph(GraphState)
@@ -330,28 +303,15 @@ export const graph = new StateGraph(GraphState)
   .addNode("grade_retrieval", gradeRetrieval)
   .addNode("retry_retrieval", retryRetrieval)
 
-  .addNode("clarify", clarify).addNode(
-  "reason",
-  reason
-)
-  .addNode("execute_tools", executeTools).addNode(
-  "extract_citations",
-  extractCitations
-)
-  .addNode("synthesize", synthesize).addNode(
-  "verify_citations",
-  verifyCitations
-).addNode(
-  "hallucination_check",
-  hallucinationCheck
-).addNode(
-  "grade_response",
-  gradeResponse
-).addNode(
-  "improve_answer",
-  improveAnswer
-)
-
+  .addNode("clarify", clarify)
+  .addNode("reason", reason)
+  .addNode("execute_tools", executeTools)
+  .addNode("extract_citations", extractCitations)
+  .addNode("synthesize", synthesize)
+  .addNode("verify_citations", verifyCitations)
+  .addNode("hallucination_check", hallucinationCheck)
+  .addNode("grade_response", gradeResponse)
+  .addNode("improve_answer", improveAnswer)
 
   .addEdge(START, "classify")
 
@@ -366,92 +326,63 @@ export const graph = new StateGraph(GraphState)
   .addEdge("rerank", "compress_context")
   .addEdge("compress_context", "grade_retrieval")
 
- .addConditionalEdges(
-  "grade_retrieval",
-  retrievalRouter,
-  {
+  .addConditionalEdges("grade_retrieval", retrievalRouter, {
     retry: "retry_retrieval",
     planner: "reason",
     clarify: "clarify",
-  }
-)
+  })
 
   .addEdge("retry_retrieval", "query_rewrite")
 
-.addConditionalEdges(
-  "reason",
-  reactRouter,
-  {
-    execute_tools:
-      "execute_tools",
+  .addConditionalEdges("reason", reactRouter, {
+    execute_tools: "execute_tools",
 
-    synthesize:
-      "synthesize",
-  }
-).addEdge(
-  "execute_tools",
-  "reason"
-)
+    synthesize: "synthesize",
+  })
+  .addEdge("execute_tools", "reason")
 
-.addEdge(
-  "extract_citations",
-  "synthesize"
-)
+  .addEdge("extract_citations", "synthesize")
   .addEdge("clarify", END)
-.addEdge(
-  "synthesize",
-  "verify_citations"
-)
+  .addEdge("synthesize", "verify_citations")
 
-.addEdge(
-  "verify_citations",
-  "hallucination_check"
-)
+  .addEdge("verify_citations", "hallucination_check")
 
-.addEdge(
-  "hallucination_check",
-  "grade_response"
-).addConditionalEdges(
-  "grade_response",
-  reflectionRouter,
-  {
-    improve:
-      "improve_answer",
+  .addEdge("hallucination_check", "grade_response")
+  .addConditionalEdges("grade_response", reflectionRouter, {
+    improve: "improve_answer",
 
-    done:
-      END,
-  }
-).addEdge(
-  "improve_answer",
-  "grade_response"
-)
+    done: END,
+  })
+  .addEdge("improve_answer", "grade_response")
 
-
-  .compile();
-async function main() {
-  const result = await graph.invoke({
-    messages: [
-      {
-        role: "user",
-        content: "Explain quantum computing in simple words",
-      },
-    ],
-  },
-  {
-    configurable: {
-      thread_id: crypto.randomUUID(),
-    },
-    runName: "agent-query",
+   .compile({
+    checkpointer,
   });
+async function main() {
+  const result = await graph.invoke(
+    {
+      messages: [
+        {
+          role: "user",
+          content: "Explain quantum computing in simple words",
+        },
+      ],
+    },
+    {
+      configurable: {
+        thread_id: crypto.randomUUID(),
+      },
+      runName: "agent-query",
+    },
+  );
 
-//   console.log(result.synthesis);
-//   console.log(
-//   result.citationVerification
-// );
-// console.log(
-//   result.hallucinationCheck
-// );
-
+  //   console.log(result.synthesis);
+  //   console.log(
+  //   result.citationVerification
+  // );
+  // console.log(
+  //   result.hallucinationCheck
+  // );
 }
 
 // main();
