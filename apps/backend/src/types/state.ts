@@ -170,4 +170,8 @@ userId: Annotation<string>({
   reducer: (_, update) => update,
   default: () => "",
 }),
+extractedMemory: Annotation<string>({
+  reducer: (_, update) => update,
+  default: () => "",
+}),
 });

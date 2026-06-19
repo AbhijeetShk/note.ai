@@ -23,6 +23,8 @@ import { reflectionRouter } from "../reflectionRouter/reflectionRouter.js";
 import { reason } from "../ReAct/reasonNode.js";
 import { reactRouter } from "../ReAct/reactRouter.js";
 import { MemorySaver } from "@langchain/langgraph";
+import { extractMemory } from "../memory/extract-memory.js";
+import { writeMemory } from "../memory/write-memory.js";
 dotenv.config();
 
 type Message = {
@@ -308,6 +310,9 @@ export const graph = new StateGraph(GraphState)
   .addNode("execute_tools", executeTools)
   .addNode("extract_citations", extractCitations)
   .addNode("synthesize", synthesize)
+  .addNode("extract_memory", extractMemory)
+
+  .addNode("write_memory", writeMemory)
   .addNode("verify_citations", verifyCitations)
   .addNode("hallucination_check", hallucinationCheck)
   .addNode("grade_response", gradeResponse)
@@ -350,12 +355,14 @@ export const graph = new StateGraph(GraphState)
   .addEdge("hallucination_check", "grade_response")
   .addConditionalEdges("grade_response", reflectionRouter, {
     improve: "improve_answer",
-
-    done: END,
+    done: "extract_memory",
   })
   .addEdge("improve_answer", "grade_response")
+  .addEdge("extract_memory", "write_memory")
 
-   .compile({
+  .addEdge("write_memory", END)
+
+  .compile({
     checkpointer,
   });
 async function main() {
