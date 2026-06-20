@@ -189,5 +189,9 @@ finishApproved:
 Annotation<boolean>({
   reducer: (_, update) => update,
   default: () => false,
-})
+}),
+informationGain: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 1,
+}),
 });

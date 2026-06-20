@@ -58,6 +58,17 @@ if (
       `TOOL_ERROR: ${String(error)}`;
   }
 }
+const previous =
+  state.observations.at(-1)?.result ?? "";
+
+let informationGain = 1;
+
+if (
+  previous &&
+  previous === result
+) {
+  informationGain = 0;
+}
 
   return {
     actionHistory: [
@@ -76,5 +87,6 @@ observations: [
 ],
 
     iterationCount: state.iterationCount + 1,
+    informationGain,
   };
 }

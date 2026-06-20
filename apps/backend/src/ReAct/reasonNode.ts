@@ -98,6 +98,15 @@ ${state.iterationCount}
 If Current Iteration >= 4,
 you should choose finish unless a tool call is absolutely required.
 
+Previous Information Gain:
+${state.informationGain}
+
+If information gain is low,
+prefer finish.
+
+Do not repeatedly call tools
+that return similar information.
+
 Your task is to decide the next best action.
 
 Guidelines:
@@ -155,10 +164,7 @@ Return a JSON object with:
     "ITERATION:",
     state.iterationCount + 1,
   );
-  console.log(
-  "REASONING:",
-  result.reasoning
-);
+  console.log("REASONING:", result.reasoning);
   const lastAction = state.actionHistory.at(-1);
 
   if (
