@@ -1,13 +1,13 @@
 export function reflectionRouter(
   state: any
 ) {
-//   console.log({
-//   finalScore:
-//     state.responseGrade?.finalScore,
+  console.log('Reflection',{
+  finalScore:
+    state.responseGrade?.finalScore,
 
-//   reflectionCount:
-//     state.reflectionCount,
-// });
+  reflectionCount:
+    state.reflectionCount,
+});
   if (
     state.responseGrade
       ?.finalScore >= 8

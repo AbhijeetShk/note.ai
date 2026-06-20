@@ -4,6 +4,10 @@ export async function improveAnswer(
   state: any
 ) {
   // console.log("ENTERING improveAnswer");
+  console.log("REFLECTION UPDATE", {
+  before: state.reflectionCount,
+  after: state.reflectionCount + 1,
+});
   const question =
     state.messages.at(-1)?.content ?? "";
 

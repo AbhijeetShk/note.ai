@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { graph} from "./agent/agent.js";
+import {initCheckpointer} from "./checkpointer/init.js";
+
 
 
 dotenv.config();
@@ -9,42 +11,67 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+await initCheckpointer();
 
 app.post("/runs/stream", async (req, res) => {
-  const { input } = req.body;
+  const {
+    input,
+    userId,
+    threadId,
+  } = req.body;
 
-  const result = await graph.invoke({
-    messages: [{ role: "user", content: input }], userId:
-  req.body.userId,
-  },    {
-   configurable: {
-        thread_id:
-          req.body.threadId,
+  const result =
+    await graph.invoke(
+      {
+        messages: [
+          {
+            role: "user",
+            content: input,
+          },
+        ],
+
+        userId,
       },
-    runName: "agent-query",
-  });
+      {
+        configurable: {
+          thread_id: threadId,
+        },
+
+        runName:
+          "agent-query",
+      }
+    );
 
   res.json(result);
 });
 app.post("/chat", async (req, res) => {
-  const { message } = req.body;
-console.log("Received message:", message);
-  const result = await graph.invoke({
-  messages: [
-    {
-      role: "user",
-      content: message,
-    },
-  ],
-},
-  {
-   configurable: {
-        thread_id:
-          req.body.threadId,
+  const {
+    message,
+    userId,
+    threadId,
+  } = req.body;
+
+  const result =
+    await graph.invoke(
+      {
+        messages: [
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+
+        userId,
       },
-    runName: "agent-query",
-  });
+      {
+        configurable: {
+          thread_id: threadId,
+        },
+    recursionLimit: 50,
+        runName:
+          "agent-query",
+      }
+    );
 
   res.json(result);
 });

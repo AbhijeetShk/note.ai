@@ -13,10 +13,15 @@ export const GraphState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => "",
   }),
-  route: Annotation<"simple_rag" | "deep_rag" | "clarify">({
-    reducer: (_, update) => update,
-    default: () => "simple_rag",
-  }),
+ route: Annotation<
+  "simple_rag"
+  | "deep_rag"
+  | "clarify"
+  | "memory"
+>({
+  reducer: (_, update) => update,
+  default: () => "simple_rag",
+}),
   retrievedDocs: Annotation<any[]>({
     reducer: (_, update) => update,
     default: () => [],
@@ -137,17 +142,23 @@ nextAction: Annotation<{
   default: () => null,
 }),
 reasoningTrace: Annotation<
-  {
-    thought: string;
-    action: string;
-    input: string;
-    confidence?: number;
-  }[]
+{
+  thought: string;
+
+  reasoning: string;
+
+  action: string;
+
+  input: string;
+
+  confidence: number;
+}[]
 >({
   reducer: (state, update) => [
     ...state,
     ...update,
   ],
+
   default: () => [],
 }),
 iterationCount: Annotation<number>({
@@ -174,4 +185,9 @@ extractedMemory: Annotation<string>({
   reducer: (_, update) => update,
   default: () => "",
 }),
+finishApproved:
+Annotation<boolean>({
+  reducer: (_, update) => update,
+  default: () => false,
+})
 });

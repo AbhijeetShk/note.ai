@@ -3,7 +3,10 @@ import { GraphState } from "../types/state.js";
 import { tools } from "./index.js";
 export async function executeTools(state: typeof GraphState.State) {
   const action = state.nextAction;
-
+console.log("ITERATION UPDATE", {
+  before: state.iterationCount,
+  after: state.iterationCount + 1,
+});
   if (!action || action.tool === "finish") {
     return {};
   }

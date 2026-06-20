@@ -1,38 +1,53 @@
-import { llm } from "../index.js";
+import { graderLLM, llm } from "../index.js";
 import { GraphState } from "../types/state.js";
 import { ReActSchema } from "./schema.js";
 
-export async function reason(
-  state: typeof GraphState.State
-) {
-  const question =
-    state.messages.at(-1)?.content ?? "";
+export async function reason(state: typeof GraphState.State) {
+  console.log("ENTERING reason");
+  console.log({
+    messages: state.messages.length,
 
-const thoughts =
-  state.reasoningTrace.join("\n");
+    observations: state.observations.length,
 
-const actions =
-  state.actionHistory
+    actions: state.actionHistory.length,
+
+    thoughts: state.reasoningTrace.length,
+  });
+  const question = state.messages.at(-1)?.content ?? "";
+
+  const thoughts = state.reasoningTrace
+    .slice(-3)
     .map(
-      a =>
-        `${a.tool}: ${a.input}`
+      (t) => `
+Thought:
+${t.thought}
+
+Reasoning:
+${t.reasoning}
+
+Action:
+${t.action}
+
+Confidence:
+${t.confidence}
+`,
     )
+    .join("\n\n");
+  const actions = state.actionHistory
+    .slice(-3)
+    .map((a) => `${a.tool}: ${a.input}`)
     .join("\n");
 
-const observations =
-  state.observations
+  const observations = state.observations
+    .slice(-3)
     .map(
-      o =>
+      (o) =>
         `[${o.status}]
-${o.tool}: ${o.result}`
+${o.tool}: ${o.result}`,
     )
     .join("\n");
-
-  const structured =
-    llm.withStructuredOutput(
-      ReActSchema
-    );
-const result = await structured.invoke(`
+  const structured = graderLLM.withStructuredOutput(ReActSchema);
+  const result = await structured.invoke(`
 You are an autonomous reasoning agent.
 
 Question:
@@ -66,12 +81,22 @@ ${thoughts}
 
 Previous Actions:
 ${actions}
+IMPORTANT:
 
+If the same tool has already been
+called with substantially similar
+input, do NOT call it again.
+
+Use the observations already
+available and choose finish.
 Previous Observations:
 ${observations}
 
 Current Iteration:
 ${state.iterationCount}
+
+If Current Iteration >= 4,
+you should choose finish unless a tool call is absolutely required.
 
 Your task is to decide the next best action.
 
@@ -99,24 +124,73 @@ Guidelines:
 6. Think step-by-step before selecting
    the next action.
 
-Return:
-- thought
-- action
-- input
-`);
-return {
-  nextAction: {
-    tool: result.action,
-    input: result.input,
-  },
+Return a JSON object with:
 
-  reasoningTrace: [
-    {
-      thought: result.thought,
-      action: result.action,
+- thought:
+  short reasoning summary
+
+- reasoning:
+  detailed reasoning for why
+  this action was chosen
+
+- action:
+  one of:
+  search_documents
+  calculator
+  memory_search
+  finish
+
+- input:
+  tool input
+  (empty string if finish)
+
+- confidence:
+  number between 0 and 1
+`);
+  console.log("ACTION:", result.action, result.input);
+  console.log("ITERATION:", state.iterationCount);
+  console.log(
+    "TOOL EXECUTED:",
+    result.action,
+    "ITERATION:",
+    state.iterationCount + 1,
+  );
+  console.log(
+  "REASONING:",
+  result.reasoning
+);
+  const lastAction = state.actionHistory.at(-1);
+
+  if (
+    lastAction &&
+    lastAction.tool === result.action &&
+    lastAction.input === result.input
+  ) {
+    return {
+      nextAction: {
+        tool: "finish",
+        input: "",
+      },
+    };
+  }
+  return {
+    nextAction: {
+      tool: result.action,
       input: result.input,
-      confidence: result.confidence,
     },
-  ],
-};
+
+    reasoningTrace: [
+      {
+        thought: result.thought,
+
+        reasoning: result.reasoning,
+
+        action: result.action,
+
+        input: result.input,
+
+        confidence: result.confidence,
+      },
+    ],
+  };
 }

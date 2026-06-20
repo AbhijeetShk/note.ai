@@ -5,6 +5,15 @@ import { storeMemory } from "./store-memory.js";
 export async function writeMemory(
   state: typeof GraphState.State
 ) {
+    console.log(
+  "WRITING MEMORY",
+  {
+    memory:
+      state.extractedMemory,
+    user:
+      state.userId,
+  }
+);
   if (
     !state.extractedMemory
   ) {

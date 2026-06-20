@@ -5,7 +5,7 @@ from "./schema.js";
 export async function gradeResponse(
   state: any
 ) {
-  // console.log("ENTERING gradeResponse");
+  console.log("ENTERING gradeResponse");
   const question =
     state.messages.at(-1)?.content ?? "";
 

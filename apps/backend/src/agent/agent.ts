@@ -25,30 +25,75 @@ import { reactRouter } from "../ReAct/reactRouter.js";
 import { MemorySaver } from "@langchain/langgraph";
 import { extractMemory } from "../memory/extract-memory.js";
 import { writeMemory } from "../memory/write-memory.js";
+import { checkpointer } from "../checkpointer/postgres.js";
+import { evaluateFinish } from "../evalFinish/evaluateFinish.js";
+import { finishRouter } from "../evalFinish/finishRouter.js";
 dotenv.config();
 
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
 };
-const checkpointer = new MemorySaver();
-async function classify(state: typeof GraphState.State) {
-  // console.log("ENTERING classify");
-  const question =
-    state.messages[state.messages.length - 1]?.content.toLowerCase() || "";
+// const checkpointer = new MemorySaver();
+// async function classify(state: typeof GraphState.State) {
+//   // console.log("ENTERING classify");
+//   const question =
+//     state.messages[state.messages.length - 1]?.content.toLowerCase() || "";
 
-  let route: "simple_rag" | "deep_rag" | "clarify" = "simple_rag";
+//   let route: "simple_rag" | "deep_rag" | "clarify" = "simple_rag";
+
+//   let retrievalMode: "fast" | "balanced" | "accurate" = "balanced";
+
+//   if (question.length < 10) {
+//     route = "clarify";
+//   }
+
+//   if (
+//     question.includes("compare") ||
+//     question.includes("analyze") ||
+//     question.includes("deep")
+//   ) {
+//     route = "deep_rag";
+//     retrievalMode = "accurate";
+//   }
+
+//   return {
+//     route,
+//     retrievalMode,
+//   };
+// }
+
+//Improved-->
+export async function classify(state: typeof GraphState.State) {
+  const message = state.messages.at(-1)?.content?.trim().toLowerCase() || "";
+
+  let route: "simple_rag" | "deep_rag" | "clarify" | "memory" = "simple_rag";
 
   let retrievalMode: "fast" | "balanced" | "accurate" = "balanced";
 
-  if (question.length < 10) {
+  if (
+    message.startsWith("i am") ||
+    message.startsWith("i'm") ||
+    message.startsWith("my") ||
+    message.startsWith("i like") ||
+    message.startsWith("i prefer") ||
+    message.startsWith("i want") ||
+    message.startsWith("i work") ||
+    message.startsWith("i build") ||
+    message.startsWith("i built")
+  ) {
+    route = "memory";
+  } else if (message.length < 10) {
     route = "clarify";
   }
 
-  if (
-    question.includes("compare") ||
-    question.includes("analyze") ||
-    question.includes("deep")
+  // deep research
+  else if (
+    message.includes("compare") ||
+    message.includes("analyze") ||
+    message.includes("deep") ||
+    message.includes("tradeoff") ||
+    message.includes("architecture")
   ) {
     route = "deep_rag";
     retrievalMode = "accurate";
@@ -198,7 +243,7 @@ ${context}
   };
 }
 export async function gradeRetrieval(state: typeof GraphState.State) {
-  // console.log("ENTERING gradeRetrieval");
+  console.log("ENTERING gradeRetrieval");
   const question = state.messages.at(-1)?.content || "";
 
   // const context =
@@ -272,7 +317,7 @@ mark sufficient=true.
   };
 }
 function retrievalRouter(state: typeof GraphState.State) {
-  // console.log("ENTERING retrievalRouter");
+  console.log("ENTERING retrievalRouter");
   if (state.retrievalQuality === "good") {
     return "planner";
   }
@@ -284,7 +329,11 @@ function retrievalRouter(state: typeof GraphState.State) {
   return "retry";
 }
 async function retryRetrieval(state: typeof GraphState.State) {
-  // console.log("ENTERING retryRetrieval");
+  console.log("ENTERING retryRetrieval");
+  console.log("RETRY UPDATE", {
+    before: state.retryCount,
+    after: state.retryCount + 1,
+  });
   return {
     retryCount: state.retryCount + 1,
   };
@@ -306,17 +355,21 @@ export const graph = new StateGraph(GraphState)
   .addNode("retry_retrieval", retryRetrieval)
 
   .addNode("clarify", clarify)
+
   .addNode("reason", reason)
   .addNode("execute_tools", executeTools)
+  .addNode("evaluate_finish", evaluateFinish)
   .addNode("extract_citations", extractCitations)
   .addNode("synthesize", synthesize)
-  .addNode("extract_memory", extractMemory)
 
-  .addNode("write_memory", writeMemory)
   .addNode("verify_citations", verifyCitations)
   .addNode("hallucination_check", hallucinationCheck)
+
   .addNode("grade_response", gradeResponse)
   .addNode("improve_answer", improveAnswer)
+
+  .addNode("extract_memory", extractMemory)
+  .addNode("write_memory", writeMemory)
 
   .addEdge(START, "classify")
 
@@ -324,6 +377,8 @@ export const graph = new StateGraph(GraphState)
     simple_rag: "query_rewrite",
     deep_rag: "query_rewrite",
     clarify: "clarify",
+
+    memory: "extract_memory",
   })
 
   .addEdge("query_rewrite", "retrieve")
@@ -342,25 +397,37 @@ export const graph = new StateGraph(GraphState)
   .addConditionalEdges("reason", reactRouter, {
     execute_tools: "execute_tools",
 
-    synthesize: "synthesize",
+    evaluate_finish: "evaluate_finish",
   })
+
   .addEdge("execute_tools", "reason")
+  .addConditionalEdges("evaluate_finish", finishRouter, {
+    synthesize: "extract_citations",
+
+    reason: "reason",
+  })
 
   .addEdge("extract_citations", "synthesize")
-  .addEdge("clarify", END)
+
   .addEdge("synthesize", "verify_citations")
 
   .addEdge("verify_citations", "hallucination_check")
 
   .addEdge("hallucination_check", "grade_response")
+
   .addConditionalEdges("grade_response", reflectionRouter, {
     improve: "improve_answer",
+
     done: "extract_memory",
   })
+
   .addEdge("improve_answer", "grade_response")
+
   .addEdge("extract_memory", "write_memory")
 
   .addEdge("write_memory", END)
+
+  .addEdge("clarify", END)
 
   .compile({
     checkpointer,
