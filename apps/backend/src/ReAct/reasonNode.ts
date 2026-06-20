@@ -33,10 +33,13 @@ ${t.confidence}
 `,
     )
     .join("\n\n");
-  const actions = state.actionHistory
-    .slice(-3)
-    .map((a) => `${a.tool}: ${a.input}`)
-    .join("\n");
+const actions = state.actionHistory
+  .slice(-5)
+  .map(
+    (a, i) =>
+      `${i + 1}. ${a.tool}: ${a.input}`
+  )
+  .join("\n");
 
   const observations = state.observations
     .slice(-3)
@@ -89,6 +92,28 @@ input, do NOT call it again.
 
 Use the observations already
 available and choose finish.
+
+Tool Reuse Policy:
+
+Before selecting a tool:
+
+- Check previous tool calls.
+
+- If a previous tool call already explored
+  substantially similar information,
+  do not call the tool again.
+
+Examples:
+
+"AI agents"
+"AI agent systems"
+"agentic AI"
+
+should be treated as similar.
+
+Prefer finish when additional tool calls
+are unlikely to produce meaningfully new information.
+
 Previous Observations:
 ${observations}
 
@@ -165,20 +190,58 @@ Return a JSON object with:
     state.iterationCount + 1,
   );
   console.log("REASONING:", result.reasoning);
-  const lastAction = state.actionHistory.at(-1);
+  // const lastAction = state.actionHistory.at(-1);
 
-  if (
-    lastAction &&
-    lastAction.tool === result.action &&
-    lastAction.input === result.input
-  ) {
-    return {
-      nextAction: {
-        tool: "finish",
+const recentActions =
+  state.actionHistory.slice(-3);
+
+const duplicateToolCall =
+  recentActions.some(
+    (a) =>
+      a.tool === result.action &&
+      a.input
+        .toLowerCase()
+        .trim() ===
+      result.input
+        .toLowerCase()
+        .trim()
+  );
+
+if (duplicateToolCall) {
+  return {
+    nextAction: {
+      tool: "finish",
+      input: "",
+    },
+
+    reasoningTrace: [
+      {
+        thought:
+          "Duplicate tool call detected",
+
+        reasoning:
+          "Previous tool execution already explored similar information",
+
+        action: "finish",
+
         input: "",
+
+        confidence: 0.9,
       },
-    };
-  }
+    ],
+  };
+}
+if (
+  state.informationGain === 0 &&
+  result.action === "search_documents"
+) {
+  return {
+    nextAction: {
+      tool: "finish",
+      input: "",
+    },
+  };
+}
   return {
     nextAction: {
       tool: result.action,
