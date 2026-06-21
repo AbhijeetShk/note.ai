@@ -1,4 +1,4 @@
-import { graderLLM, llm } from "../index.js";
+import { plannerLLM} from "../index.js";
 import { GraphState } from "../types/state.js";
 import { ReActSchema } from "./schema.js";
 
@@ -49,7 +49,7 @@ const actions = state.actionHistory
 ${o.tool}: ${o.result}`,
     )
     .join("\n");
-  const structured = graderLLM.withStructuredOutput(ReActSchema);
+  const structured = plannerLLM.withStructuredOutput(ReActSchema);
   const result = await structured.invoke(`
 You are an autonomous reasoning agent.
 

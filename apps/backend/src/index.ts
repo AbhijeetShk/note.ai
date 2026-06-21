@@ -36,23 +36,23 @@ export const embeddings = new HuggingFaceInferenceEmbeddings({
 // planner
 // synthesize
 // improve_answer, use 70b model for these tasks, as they require more reasoning and context understanding
-export const llm = new ChatGroq({
+export const synthesisLLM = new ChatGroq({
   model: "llama-3.3-70b-versatile",
   temperature: 0,
   apiKey: process.env.GROQ_KEY,
 });
 
-
 //for low level tasks - gradeRetrieval
 // hallucinationCheck
 // verifyCitations
 // gradeResponse - use 8b model for grading, 70b model is too expensive for grading tasks
-export const graderLLM = new ChatGroq({ 
+export const plannerLLM = new ChatGroq({
   model: "llama-3.1-8b-instant",
+
   temperature: 0,
+
   apiKey: process.env.GROQ_KEY,
 });
-
 const vectorStore = new SupabaseVectorStore(embeddings, {
   client: supabase as any,
   tableName: "documents",
@@ -124,7 +124,7 @@ function buildRetriever(
 
 async function queryExpansion(query: string) {
   const prompt = `Rewrite this query into 3 concise search variations.\n${query}`;
-  const result = await llm.invoke(prompt);
+  const result = await synthesisLLM.invoke(prompt);
   const text = String(result.content);
 
   const variants = text
@@ -214,7 +214,7 @@ export async function generateFromDocs(
 ) {
   const context = docs.map((doc) => doc.pageContent).join("\n\n");
 
-  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
+  const structuredLlm = synthesisLLM.withStructuredOutput(AnswerSchema);
 
   const formattedPrompt = await ragPrompt.formatMessages({
     context,
@@ -247,7 +247,7 @@ export async function generateFromContext(
   context: string,
   mode: Mode = "balanced",
 ) {
-  const structuredLlm = llm.withStructuredOutput(AnswerSchema);
+  const structuredLlm = synthesisLLM.withStructuredOutput(AnswerSchema);
 
   const formattedPrompt = await ragPrompt.formatMessages({
     context,
@@ -265,7 +265,7 @@ export async function generateFromContext(
 export async function queryRewrite(state: typeof GraphState.State) {
   const question = state.messages.at(-1)?.content || "";
 
-  const structured = llm.withStructuredOutput(RewriteSchema);
+  const structured = synthesisLLM.withStructuredOutput(RewriteSchema);
 
   const result = await structured.invoke(`
 Generate 3 semantic search variations.

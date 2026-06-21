@@ -1,4 +1,4 @@
-import { llm } from "../index.js";
+import { synthesisLLM } from "../index.js";
 
 export async function improveAnswer(
   state: any
@@ -22,7 +22,7 @@ export async function improveAnswer(
     );
 
   const improved =
-    await llm.invoke(`
+    await synthesisLLM.invoke(`
 Question:
 ${question}
 

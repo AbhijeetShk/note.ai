@@ -1,19 +1,34 @@
+import { embeddings, supabase } from "../index.js";
 import { memoryStore } from "./vector-store.js";
 
 export async function storeMemory(
   memory: string,
   userId: string
 ) {
-  console.log(
-  "MEMORY STORED"
-);
-  await memoryStore.addDocuments([
-    {
-      pageContent: memory,
+  const embedding =
+  await embeddings.embedQuery(memory);
 
-      metadata: {
-        user_id: userId,
-      },
-    },
-  ]);
+await supabase
+  .from("memories")
+  .insert({
+    content: memory,
+    embedding,
+    user_id: userId,
+    metadata: {},
+  });
+  // await memoryStore.addDocuments([
+  //   {
+  //     pageContent: memory,
+
+  //     metadata: {
+  //       user_id: userId,
+  //     },
+  //   },
+  // ]);
+  console.log(
+  "MEMORY STORED", {
+  memory,
+  userId,
+}
+);
 }

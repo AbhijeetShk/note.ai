@@ -13,15 +13,15 @@ export const GraphState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => "",
   }),
- route: Annotation<
-  "simple_rag"
-  | "deep_rag"
-  | "clarify"
-  | "memory"
->({
-  reducer: (_, update) => update,
-  default: () => "simple_rag",
-}),
+//  route: Annotation<
+//   "simple_rag"
+//   | "deep_rag"
+//   | "clarify"
+//   | "memory"
+// >({
+//   reducer: (_, update) => update,
+//   default: () => "simple_rag",
+// }),
   retrievedDocs: Annotation<any[]>({
     reducer: (_, update) => update,
     default: () => [],
@@ -193,5 +193,15 @@ Annotation<boolean>({
 informationGain: Annotation<number>({
   reducer: (_, update) => update,
   default: () => 1,
+}),
+intent: Annotation<
+  | "question"
+  | "research"
+  | "memory"
+  | "task"
+  | "clarify"
+>({
+  reducer: (_, update) => update,
+  default: () => "question",
 }),
 });

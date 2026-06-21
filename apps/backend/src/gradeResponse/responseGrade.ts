@@ -1,4 +1,4 @@
-import { graderLLM, llm } from "../index.js";
+import { plannerLLM} from "../index.js";
 import { ResponseGradeSchema }
 from "./schema.js";
 
@@ -16,7 +16,7 @@ export async function gradeResponse(
     state.compressedContext;
 
   const structured =
-    graderLLM.withStructuredOutput(
+    plannerLLM.withStructuredOutput(
       ResponseGradeSchema
     );
 

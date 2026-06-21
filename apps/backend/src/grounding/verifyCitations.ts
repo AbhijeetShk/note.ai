@@ -1,4 +1,4 @@
-import { graderLLM, llm } from "../index.js";
+import {  synthesisLLM} from "../index.js";
 import { CitationVerificationSchema }
 from "./schema.js";
 
@@ -26,7 +26,7 @@ export async function verifyCitations(
 // );
 
   const structured =
-    llm.withStructuredOutput(
+    synthesisLLM.withStructuredOutput(
       CitationVerificationSchema
     );
 

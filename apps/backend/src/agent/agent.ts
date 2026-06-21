@@ -3,10 +3,10 @@ import dotenv from "dotenv";
 import {
   generateFromContext,
   generateFromDocs,
-  graderLLM,
-  llm,
+  plannerLLM,
   queryRewrite,
   retrieveHybrid,
+  synthesisLLM,
 } from "../index.js";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
@@ -28,6 +28,8 @@ import { writeMemory } from "../memory/write-memory.js";
 import { checkpointer } from "../checkpointer/postgres.js";
 import { evaluateFinish } from "../evalFinish/evaluateFinish.js";
 import { finishRouter } from "../evalFinish/finishRouter.js";
+import { intentRouter } from "../intentClassify/router.js";
+import { classify } from "../intentClassify/classify.js";
 dotenv.config();
 
 type Message = {
@@ -64,46 +66,46 @@ type Message = {
 // }
 
 //Improved-->
-export async function classify(state: typeof GraphState.State) {
-  const message = state.messages.at(-1)?.content?.trim().toLowerCase() || "";
+// export async function classify(state: typeof GraphState.State) {
+//   const message = state.messages.at(-1)?.content?.trim().toLowerCase() || "";
 
-  let route: "simple_rag" | "deep_rag" | "clarify" | "memory" = "simple_rag";
+//   let route: "simple_rag" | "deep_rag" | "clarify" | "memory" = "simple_rag";
 
-  let retrievalMode: "fast" | "balanced" | "accurate" = "balanced";
+//   let retrievalMode: "fast" | "balanced" | "accurate" = "balanced";
 
-  if (
-    message.startsWith("i am") ||
-    message.startsWith("i'm") ||
-    message.startsWith("my") ||
-    message.startsWith("i like") ||
-    message.startsWith("i prefer") ||
-    message.startsWith("i want") ||
-    message.startsWith("i work") ||
-    message.startsWith("i build") ||
-    message.startsWith("i built")
-  ) {
-    route = "memory";
-  } else if (message.length < 10) {
-    route = "clarify";
-  }
+//   if (
+//     message.startsWith("i am") ||
+//     message.startsWith("i'm") ||
+//     message.startsWith("my") ||
+//     message.startsWith("i like") ||
+//     message.startsWith("i prefer") ||
+//     message.startsWith("i want") ||
+//     message.startsWith("i work") ||
+//     message.startsWith("i build") ||
+//     message.startsWith("i built")
+//   ) {
+//     route = "memory";
+//   } else if (message.length < 10) {
+//     route = "clarify";
+//   }
 
-  // deep research
-  else if (
-    message.includes("compare") ||
-    message.includes("analyze") ||
-    message.includes("deep") ||
-    message.includes("tradeoff") ||
-    message.includes("architecture")
-  ) {
-    route = "deep_rag";
-    retrievalMode = "accurate";
-  }
+//   // deep research
+//   else if (
+//     message.includes("compare") ||
+//     message.includes("analyze") ||
+//     message.includes("deep") ||
+//     message.includes("tradeoff") ||
+//     message.includes("architecture")
+//   ) {
+//     route = "deep_rag";
+//     retrievalMode = "accurate";
+//   }
 
-  return {
-    route,
-    retrievalMode,
-  };
-}
+//   return {
+//     route,
+//     retrievalMode,
+//   };
+// }
 async function clarify() {
   // console.log("ENTERING clarify");
   return {
@@ -182,7 +184,7 @@ ${observations}
 Create final answer.
 `;
 
-  const result = await llm.invoke(prompt);
+  const result = await synthesisLLM.invoke(prompt);
 
   return {
     synthesis: String(result.content),
@@ -227,7 +229,7 @@ async function compressContext(state: typeof GraphState.State) {
     .map((d) => d.pageContent)
     .join("\n\n");
   //Compression is a filtering/summarization task, not a high-creativity reasoning task. Therefore use 8b model instead of 70b for cost and latency
-  const result = await graderLLM.invoke(`
+  const result = await plannerLLM.invoke(`
 Compress the following context.
 Keep only facts useful for answering the question.
 
@@ -257,7 +259,7 @@ export async function gradeRetrieval(state: typeof GraphState.State) {
 
   const context = state.compressedContext;
 
-  const structured = graderLLM.withStructuredOutput(RetrievalGradeSchema);
+  const structured = plannerLLM.withStructuredOutput(RetrievalGradeSchema);
 
   //vauge or causing confusion - not providing clear criteria for grading, leading to inconsistent results. Also could lead to token exhaustion with larger contexts
   //   const result =
@@ -373,13 +375,21 @@ export const graph = new StateGraph(GraphState)
 
   .addEdge(START, "classify")
 
-  .addConditionalEdges("classify", (state) => state.route, {
-    simple_rag: "query_rewrite",
-    deep_rag: "query_rewrite",
-    clarify: "clarify",
+.addConditionalEdges(
+  "classify",
+  intentRouter,
+  {
+    question: "query_rewrite",
+
+    research: "query_rewrite",
+
+    task: "reason",
 
     memory: "extract_memory",
-  })
+
+    clarify: "clarify",
+  }
+)
 
   .addEdge("query_rewrite", "retrieve")
   .addEdge("retrieve", "rerank")

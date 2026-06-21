@@ -14,7 +14,7 @@ export async function planner(
     ]?.content || "";
 
   const structured =
-    llm.withStructuredOutput(
+    synthesisLLM.withStructuredOutput(
       PlanSchema
     );
 

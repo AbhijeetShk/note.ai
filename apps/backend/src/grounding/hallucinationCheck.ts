@@ -1,4 +1,4 @@
-import { graderLLM, llm } from "../index.js";
+import { plannerLLM, llm } from "../index.js";
 import { HallucinationSchema }
 from "./hallucinationSchema.js";
 
@@ -16,7 +16,7 @@ export async function hallucinationCheck(
     state.synthesis;
 
   const structured =
-    llm.withStructuredOutput(
+    synthesisLLM.withStructuredOutput(
       HallucinationSchema
     );
 

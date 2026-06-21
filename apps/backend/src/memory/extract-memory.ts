@@ -1,4 +1,4 @@
-import { llm } from "../index.js";
+import { plannerLLM } from "../index.js";
 import { GraphState } from "../types/state.js";
 import { MemorySchema } from "./schema.js";
 
@@ -14,25 +14,47 @@ export async function extractMemory(
       .join("\n");
 
   const structured =
-    llm.withStructuredOutput(
+    plannerLLM.withStructuredOutput(
       MemorySchema
     );
 
   const result =
-    await structured.invoke(`
-Extract a memory worth saving.
+  await structured.invoke(`
+Extract a concrete memory from the conversation.
 
-Store only:
-- user preferences
-- long-term goals
-- projects
-- recurring facts
-- important personal context
+Rules:
 
-Do not store:
-- temporary questions
-- one-off requests
-- greetings
+- Return a specific fact.
+- Do not return categories.
+- Do not repeat these instructions.
+- Write the memory as a standalone statement.
+
+Good Examples:
+
+Conversation:
+user: I am building an AI agent platform
+
+Memory:
+User is building an AI agent platform.
+
+Conversation:
+user: My preferred language is TypeScript
+
+Memory:
+User prefers TypeScript.
+
+Conversation:
+user: I want to start an XR company
+
+Memory:
+User wants to build an XR company.
+
+Bad Examples:
+
+user preferences
+long-term goals
+projects
+important context
 
 Conversation:
 ${conversation}

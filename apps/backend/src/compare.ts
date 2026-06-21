@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
+import { plannerLLM, synthesisLLM } from "./index.js";
 
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
 
@@ -45,7 +46,7 @@ function retriever(searchType: "similarity" | "mmr", k = 6) {
 
 async function queryExpansion(query: string) {
   const prompt = `Rewrite this query into 3 short search variations.\n${query}`;
-  const res = await llm.invoke(prompt);
+  const res = await plannerLLM.invoke(prompt);
   const text = String(res.content);
 
   const queries = text
@@ -60,7 +61,7 @@ async function rerank(question: string, docs: any[]) {
   const scored = await Promise.all(
     docs.map(async (doc: any) => {
       const prompt = `Rate relevance from 1 to 10.\nQuestion: ${question}\nPassage: ${doc.pageContent}\nOnly return number.`;
-      const res = await llm.invoke(prompt);
+      const res = await synthesisLLM.invoke(prompt);
       const score = parseInt(String(res.content).match(/\d+/)?.[0] || "0");
       return { doc, score };
     })
