@@ -1,4 +1,5 @@
 import { plannerLLM} from "../index.js";
+import { memorySupportsQuestion } from "../memory/memory-relevance.js";
 import { GraphState } from "../types/state.js";
 import { ReActSchema } from "./schema.js";
 
@@ -114,6 +115,47 @@ should be treated as similar.
 Prefer finish when additional tool calls
 are unlikely to produce meaningfully new information.
 
+Memory Search Policy:
+
+If a memory_search observation directly answers
+the user's question, choose finish.
+
+Do not call memory_search again unless:
+- the memory result was empty
+- the memory result was irrelevant
+- the memory result created a new question
+that requires additional retrieval
+
+A successful memory retrieval that directly
+answers the user's question should terminate
+reasoning and select finish.
+
+Memory Query Policy:
+
+When using memory_search:
+
+- Prefer the user's question as the query.
+
+- Do not invent broad phrases such as:
+  "previous project"
+  "user information"
+  "context"
+
+- Use the most relevant part of the user's question.
+
+Examples:
+
+Question:
+"What project am I working on?"
+
+memory_search:
+"current project"
+
+Question:
+"What language do I prefer?"
+
+memory_search:
+"preferred language"
 Previous Observations:
 ${observations}
 
@@ -207,6 +249,75 @@ const duplicateToolCall =
         .trim()
   );
 
+//CONTROL HEURISTICS IMPLEMENTATION
+
+const memoryObservation =
+  state.observations.find(
+    (o) =>
+      o.tool === "memory_search" &&
+      o.status === "success" &&
+      o.result &&
+      o.result !== "[]"
+  );
+
+if (memoryObservation) {
+  const support =
+    await memorySupportsQuestion(
+      question,
+      memoryObservation.result
+    );
+
+  if (support.relevant) {
+    return {
+      nextAction: {
+        tool: "finish",
+        input: "",
+      },
+
+      reasoningTrace: [
+        {
+          thought:
+            "Memory answers question",
+
+          reasoning:
+            support.reasoning,
+
+          action: "finish",
+
+          input: "",
+
+          confidence: 0.95,
+        },
+      ],
+    };
+  }
+}
+
+// if (memoryObservation) {
+//   return {
+//     nextAction: {
+//       tool: "finish",
+//       input: "",
+//     },
+
+//     reasoningTrace: [
+//       {
+//         thought:
+//           "Relevant memory retrieved",
+
+//         reasoning:
+//           "Memory search returned information that can answer the question.",
+
+//         action: "finish",
+
+//         input: "",
+
+//         confidence: 0.95,
+//       },
+//     ],
+//   };
+// }
+// CONTROL HEURISTICES DONE ---:
 if (duplicateToolCall) {
   return {
     nextAction: {
@@ -231,6 +342,7 @@ if (duplicateToolCall) {
     ],
   };
 }
+console.log("reason node", {result})
 if (
   state.informationGain === 0 &&
   result.action === "search_documents"

@@ -1,4 +1,4 @@
-import { llm } from "../index.js";
+import { synthesisLLM } from "../index.js";
 import { PlanSchema } from "./schema.js";
 import { plannerPrompt } from "./prompt.js";
 import { GraphState } from "../types/state.js";

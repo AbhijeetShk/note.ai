@@ -14,7 +14,10 @@ await supabase
     content: memory,
     embedding,
     user_id: userId,
-    metadata: {},
+
+    metadata: {
+      user_id: userId,
+    },
   });
   // await memoryStore.addDocuments([
   //   {

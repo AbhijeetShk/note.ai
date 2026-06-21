@@ -1,42 +1,36 @@
-import {  synthesisLLM} from "../index.js";
-import { CitationVerificationSchema }
-from "./schema.js";
+import { synthesisLLM } from "../index.js";
+import { buildGroundingContext } from "../memory/grounding-context.js";
+import { CitationVerificationSchema } from "./schema.js";
 
-export async function verifyCitations(
-  state: any
-) {
-  
+export async function verifyCitations(state: any) {
   // console.log("ENTERING verifyCitations");
-  const question =
-    state.messages.at(-1)?.content ?? "";
+  const question = state.messages.at(-1)?.content ?? "";
 
-  const context =
-    state.compressedContext;
+  const context = state.compressedContext;
 
-  const answer =
-    state.synthesis;
-// console.log(
-//   "ANSWER LENGTH:",
-//   answer.length
-// );
+  const answer = state.synthesis;
+  // console.log(
+  //   "ANSWER LENGTH:",
+  //   answer.length
+  // );
 
-// console.log(
-//   "CONTEXT LENGTH:",
-//   context.length
-// );
+  // console.log(
+  //   "CONTEXT LENGTH:",
+  //   context.length
+  // );
 
-  const structured =
-    synthesisLLM.withStructuredOutput(
-      CitationVerificationSchema
-    );
+  const structured = synthesisLLM.withStructuredOutput(
+    CitationVerificationSchema,
+  );
 
-  const result =
-    await structured.invoke(`
+ const groundingContext =
+  buildGroundingContext(state);
+  const result = await structured.invoke(`
 Question:
 ${question}
 
 Retrieved Context:
-${context}
+${groundingContext}
 
 Generated Answer:
 ${answer}
@@ -52,7 +46,6 @@ Return:
 `);
 
   return {
-    citationVerification:
-      result,
+    citationVerification: result,
   };
 }

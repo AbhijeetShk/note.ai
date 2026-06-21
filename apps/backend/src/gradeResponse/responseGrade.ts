@@ -1,4 +1,5 @@
 import { plannerLLM} from "../index.js";
+import { buildGroundingContext } from "../memory/grounding-context.js";
 import { ResponseGradeSchema }
 from "./schema.js";
 
@@ -19,14 +20,15 @@ export async function gradeResponse(
     plannerLLM.withStructuredOutput(
       ResponseGradeSchema
     );
-
+const groundingContext =
+  buildGroundingContext(state);
   const result =
     await structured.invoke(`
 Question:
 ${question}
 
 Retrieved Context:
-${context}
+${groundingContext}
 
 Answer:
 ${answer}

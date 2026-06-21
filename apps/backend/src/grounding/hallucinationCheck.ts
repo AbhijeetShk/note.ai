@@ -1,4 +1,5 @@
-import { plannerLLM, llm } from "../index.js";
+import { plannerLLM, synthesisLLM } from "../index.js";
+import { buildGroundingContext } from "../memory/grounding-context.js";
 import { HallucinationSchema }
 from "./hallucinationSchema.js";
 
@@ -19,14 +20,15 @@ export async function hallucinationCheck(
     synthesisLLM.withStructuredOutput(
       HallucinationSchema
     );
-
+const groundingContext =
+  buildGroundingContext(state);
   const result =
     await structured.invoke(`
 Question:
 ${question}
 
 Retrieved Context:
-${context}
+${groundingContext}
 
 Generated Answer:
 ${answer}

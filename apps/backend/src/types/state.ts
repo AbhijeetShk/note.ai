@@ -204,4 +204,16 @@ intent: Annotation<
   reducer: (_, update) => update,
   default: () => "question",
 }),
+
+finishAttempts: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
+retrievalRelevant:
+  Annotation<boolean>({
+    reducer: (_, update) =>
+      update,
+
+    default: () => false,
+  }),
 });

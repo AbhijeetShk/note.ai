@@ -13,7 +13,7 @@ import { tool } from "@langchain/core/tools";
 import { planner } from "../planner/planner.js";
 import { executeTools } from "../tools/executor.js";
 import { GraphState } from "../types/state.js";
-import { RetrievalGradeSchema } from "../planner/schema.js";
+import { RetrievalGradeSchema } from "../retrieval/schema.js";
 import { extractCitations } from "../retrieval/citations.js";
 import { verifyCitations } from "../grounding/verifyCitations.js";
 import { hallucinationCheck } from "../grounding/hallucinationCheck.js";
@@ -30,6 +30,9 @@ import { evaluateFinish } from "../evalFinish/evaluateFinish.js";
 import { finishRouter } from "../evalFinish/finishRouter.js";
 import { intentRouter } from "../intentClassify/router.js";
 import { classify } from "../intentClassify/classify.js";
+import { buildGroundingContext } from "../memory/grounding-context.js";
+import { gradeRetrieval } from "../retrieval/gradeRetrieval.js";
+import { retrievalRouter } from "../retrieval/retrievalRouter.js";
 dotenv.config();
 
 type Message = {
@@ -162,7 +165,7 @@ async function retrieve(state: typeof GraphState.State) {
 async function synthesize(state: typeof GraphState.State) {
   // console.log("ENTERING synthesize");
   const question = state.messages.at(-1)?.content || "";
-
+  const groundingContext = buildGroundingContext(state);
   const observations = state.observations
     .map(
       (o) =>
@@ -171,17 +174,38 @@ ${o.tool}: ${o.result}`,
     )
     .join("\n");
 
-  const prompt = `
+const prompt = `
 Question:
 ${question}
 
-Plan:
-${state.plan.join("\n")}
+Grounding Context:
+${groundingContext}
 
 Observations:
 ${observations}
 
-Create final answer.
+Generate a direct answer to the user's question.
+
+Priority order:
+
+1. Relevant memory observations
+2. Retrieved documents
+3. Other tool observations
+
+If memory observations directly answer the question,
+use them.
+
+Do not claim information is unavailable if it exists
+in the grounding context.
+
+Use both:
+- Retrieved documents
+- Retrieved memories
+
+When memories contain information relevant to the question,
+use them as valid evidence.
+
+Do not ignore memory results.
 `;
 
   const result = await synthesisLLM.invoke(prompt);
@@ -244,92 +268,92 @@ ${context}
     compressedContext: String(result.content),
   };
 }
-export async function gradeRetrieval(state: typeof GraphState.State) {
-  console.log("ENTERING gradeRetrieval");
-  const question = state.messages.at(-1)?.content || "";
+// export async function gradeRetrieval(state: typeof GraphState.State) {
+//   console.log("ENTERING gradeRetrieval");
+//   const question = state.messages.at(-1)?.content || "";
 
-  // const context =
-  //   state.rerankedDocs
-  //     .map(
-  //       d => d.pageContent
-  //     )
-  //     .join("\n\n");
+//   // const context =
+//   //   state.rerankedDocs
+//   //     .map(
+//   //       d => d.pageContent
+//   //     )
+//   //     .join("\n\n");
 
-  //token exhaustion hack - top 3 chunks instead of all chunks
+//   //token exhaustion hack - top 3 chunks instead of all chunks
 
-  const context = state.compressedContext;
+//   const context = state.compressedContext;
 
-  const structured = plannerLLM.withStructuredOutput(RetrievalGradeSchema);
+//   const structured = plannerLLM.withStructuredOutput(RetrievalGradeSchema);
 
-  //vauge or causing confusion - not providing clear criteria for grading, leading to inconsistent results. Also could lead to token exhaustion with larger contexts
-  //   const result =
-  //     await structured.invoke(`
-  // Question:
-  // ${question}
+//   //vauge or causing confusion - not providing clear criteria for grading, leading to inconsistent results. Also could lead to token exhaustion with larger contexts
+//   //   const result =
+//   //     await structured.invoke(`
+//   // Question:
+//   // ${question}
 
-  // Retrieved Context:
-  // ${context}
+//   // Retrieved Context:
+//   // ${context}
 
-  // Evaluate whether the
-  // retrieved information is
-  // sufficient to answer the question.
-  // `);
+//   // Evaluate whether the
+//   // retrieved information is
+//   // sufficient to answer the question.
+//   // `);
 
-  const result = await structured.invoke(`
-Question:
-${question}
+//   const result = await structured.invoke(`
+// Question:
+// ${question}
 
-Retrieved Context:
-${context}
+// Retrieved Context:
+// ${context}
 
-Determine whether the context contains enough information
-to answer the question accurately.
+// Determine whether the context contains enough information
+// to answer the question accurately.
 
-Return:
-- sufficient: true if at least one chunk contains the answer
-- score: 1-10 relevance score
+// Return:
+// - sufficient: true if at least one chunk contains the answer
+// - score: 1-10 relevance score
 
-Be generous.
-If the answer can reasonably be produced from the context,
-mark sufficient=true.
-`);
-  // console.log(
-  //   "retryCount:",
-  //   state.retryCount
-  // );
+// Be generous.
+// If the answer can reasonably be produced from the context,
+// mark sufficient=true.
+// `);
+//   // console.log(
+//   //   "retryCount:",
+//   //   state.retryCount
+//   // );
 
-  // console.log(
-  //   "retrievalQuality:",
-  //   result.sufficient
-  // );
+//   // console.log(
+//   //   "retrievalQuality:",
+//   //   result.sufficient
+//   // );
 
-  // console.log(
-  //   "retrievalScore:",
-  //   result.score
-  // );
-  // console.log(
-  //   "reasoning:",
-  //   result.reasoning
-  // );
-  // console.log("GRADE RESULT:", result);
-  return {
-    retrievalQuality: result.sufficient ? "good" : "bad",
+//   // console.log(
+//   //   "retrievalScore:",
+//   //   result.score
+//   // );
+//   // console.log(
+//   //   "reasoning:",
+//   //   result.reasoning
+//   // );
+//   // console.log("GRADE RESULT:", result);
+//   return {
+//     retrievalQuality: result.sufficient ? "good" : "bad",
 
-    retrievalScore: result.score,
-  };
-}
-function retrievalRouter(state: typeof GraphState.State) {
-  console.log("ENTERING retrievalRouter");
-  if (state.retrievalQuality === "good") {
-    return "planner";
-  }
+//     retrievalScore: result.score,
+//   };
+// }
+// function retrievalRouter(state: typeof GraphState.State) {
+//   console.log("ENTERING retrievalRouter");
+//   if (state.retrievalQuality === "good") {
+//     return "planner";
+//   }
 
-  if (state.retryCount >= 2) {
-    return "planner";
-  }
+//   if (state.retryCount >= 2) {
+//     return "planner";
+//   }
 
-  return "retry";
-}
+//   return "retry";
+// }
 async function retryRetrieval(state: typeof GraphState.State) {
   console.log("ENTERING retryRetrieval");
   console.log("RETRY UPDATE", {
@@ -375,10 +399,7 @@ export const graph = new StateGraph(GraphState)
 
   .addEdge(START, "classify")
 
-.addConditionalEdges(
-  "classify",
-  intentRouter,
-  {
+  .addConditionalEdges("classify", intentRouter, {
     question: "query_rewrite",
 
     research: "query_rewrite",
@@ -388,8 +409,7 @@ export const graph = new StateGraph(GraphState)
     memory: "extract_memory",
 
     clarify: "clarify",
-  }
-)
+  })
 
   .addEdge("query_rewrite", "retrieve")
   .addEdge("retrieve", "rerank")

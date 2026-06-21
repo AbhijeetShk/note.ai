@@ -26,12 +26,20 @@ export async function writeMemory(
       state.userId
     );
 
-  if (
-    existing.length > 0
-  ) {
-    return {};
-  }
+const exactMatch =
+  existing.some(
+    (m) =>
+      m.pageContent
+        .toLowerCase()
+        .trim() ===
+      state.extractedMemory
+        .toLowerCase()
+        .trim()
+  );
 
+if (exactMatch) {
+  return {};
+}
   await storeMemory(
     state.extractedMemory,
     state.userId

@@ -11,9 +11,26 @@ export async function evaluateFinish(state: typeof GraphState.State) {
   0.3 * (retrievalScore / 10) +
   0.3 * (informationGain === 0 ? 1 : 0);
 
+  //too strict, contradicts with confidence score
+  // const finishApproved =
+  // trustScore >= 0.75 ||
+  // state.iterationCount >= 5;
+
+// const finishApproved =
+//   confidence >= 0.9 ||
+//   informationGain === 0 ||  //new reasoning step produced no new information
+//   trustScore >= 0.75 ||
+//   state.iterationCount >= 5;
+
+  const finishAttempts =
+    (state.finishAttempts ?? 0) + 1;
+
   const finishApproved =
-  trustScore >= 0.75 ||
-  state.iterationCount >= 5;
+    confidence >= 0.9 ||
+    informationGain === 0 ||
+    trustScore >= 0.75 ||
+    finishAttempts >= 2 ||
+    state.iterationCount >= 5;
 
   console.log({
   confidence,
@@ -35,5 +52,6 @@ export async function evaluateFinish(state: typeof GraphState.State) {
 //     state.iterationCount >= 5;
   return {
     finishApproved,
+    finishAttempts,
   };
 }

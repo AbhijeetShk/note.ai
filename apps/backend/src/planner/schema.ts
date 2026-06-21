@@ -22,15 +22,5 @@ export const RewriteSchema = z.object({
   queries: z.array(z.string()),
 });
 
-export const RetrievalGradeSchema =
-  z.object({
-    score: z.number()
-      .min(1)
-      .max(10),
 
-    sufficient:
-      z.boolean(),
 
-    reasoning:
-      z.string(),
-  });
