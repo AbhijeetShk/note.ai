@@ -6,7 +6,7 @@ from "./hallucinationSchema.js";
 export async function hallucinationCheck(
   state: any
 ) {
-  // console.log("ENTERING hallucinationCheck");
+  console.log("ENTERING hallucinationCheck");
   const question =
     state.messages.at(-1)?.content ?? "";
 

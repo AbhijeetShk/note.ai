@@ -5,6 +5,7 @@ import { MemorySchema } from "./schema.js";
 export async function extractMemory(
   state: typeof GraphState.State
 ) {
+  console.log("ENTERING extractMemory");
   const conversation =
     state.messages
       .map(

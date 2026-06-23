@@ -34,6 +34,15 @@ export const GraphState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => "balanced",
   }),
+  retrievalSource: Annotation<
+    | "documents"
+    | "memory"
+    | "hybrid"
+    | "tools"
+  >({
+    reducer: (_, update) => update,
+    default: () => "hybrid",
+  }),
   rerankedDocs: Annotation<any[]>({
     reducer: (_, update) => update,
     default: () => [],
@@ -210,6 +219,13 @@ finishAttempts: Annotation<number>({
   default: () => 0,
 }),
 retrievalRelevant:
+  Annotation<boolean>({
+    reducer: (_, update) =>
+      update,
+
+    default: () => false,
+  }),
+  evidenceSufficient:
   Annotation<boolean>({
     reducer: (_, update) =>
       update,

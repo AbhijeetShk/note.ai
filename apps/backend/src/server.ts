@@ -36,7 +36,7 @@ app.post("/runs/stream", async (req, res) => {
         configurable: {
           thread_id: threadId,
         },
-
+        recursionLimit: 50,
         runName:
           "agent-query",
       }

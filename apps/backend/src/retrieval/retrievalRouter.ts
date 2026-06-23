@@ -11,13 +11,13 @@ export function retrievalRouter(
     !state.retrievalRelevant &&
     state.retryCount < 2
   ) {
-    return "retry";
+    return "retry"; //instead of clarify
   }
 
   if (
     !state.retrievalRelevant
   ) {
-    return "clarify";
+    return "planner";
   }
 
   return "planner";

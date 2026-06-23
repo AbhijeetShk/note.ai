@@ -119,11 +119,87 @@ async function retrieve(state: typeof GraphState.State) {
   // console.log("ENTERING retrieve");
   const question = state.messages[state.messages.length - 1]?.content || "";
 
-  const docs = await retrieveHybrid(question, state.retrievalMode);
+  const docs = await retrieveHybrid(
+    question,
+    state.retrievalMode,
+  );
 
   return {
     retrievedDocs: docs,
   };
+}
+
+async function sourceSelector(
+  state: typeof GraphState.State
+) {
+  const question = state.messages
+    .at(-1)
+    ?.content?.trim()
+    .toLowerCase() || "";
+
+  const memoryTriggers = [
+    "what project",
+    "what am i working",
+    "what am i building",
+    "what am i working on",
+    "my project",
+    "my work",
+    "my job",
+    "what am i",
+    "where am i working",
+    "remember",
+    "did i",
+    "am i working",
+  ];
+
+  const documentTriggers = [
+    "compare",
+    "analyze",
+    "research",
+    "what is",
+    "why",
+    "how",
+    "explain",
+    "describe",
+    "difference",
+    "tradeoff",
+  ];
+
+  if (
+    state.intent === "memory" ||
+    memoryTriggers.some((trigger) => question.includes(trigger))
+  ) {
+    return {
+      retrievalSource: "memory",
+    };
+  }
+
+  if (
+    documentTriggers.some((trigger) =>
+      question.includes(trigger)
+    )
+  ) {
+    return {
+      retrievalSource: "documents",
+    };
+  }
+
+  return {
+    retrievalSource: "hybrid",
+  };
+}
+
+export function sourceRouter(
+  state: typeof GraphState.State
+) {
+  if (
+    state.retrievalSource === "memory" ||
+    state.retrievalSource === "tools"
+  ) {
+    return "reason";
+  }
+
+  return "query_rewrite";
 }
 
 // async function gradeRetrieval(state: typeof GraphState.State) {
@@ -163,7 +239,7 @@ async function retrieve(state: typeof GraphState.State) {
 //   };
 // }
 async function synthesize(state: typeof GraphState.State) {
-  // console.log("ENTERING synthesize");
+  console.log("ENTERING synthesize");
   const question = state.messages.at(-1)?.content || "";
   const groundingContext = buildGroundingContext(state);
   const observations = state.observations
@@ -209,7 +285,7 @@ Do not ignore memory results.
 `;
 
   const result = await synthesisLLM.invoke(prompt);
-
+console.log("SYNTHESIZE RETURNING MESSAGE");
   return {
     synthesis: String(result.content),
 
@@ -372,6 +448,7 @@ export async function reflect(state: any) {
 }
 export const graph = new StateGraph(GraphState)
   .addNode("classify", classify)
+  .addNode("source_selector", sourceSelector)
 
   .addNode("query_rewrite", queryRewrite)
   .addNode("retrieve", retrieve)
@@ -400,15 +477,22 @@ export const graph = new StateGraph(GraphState)
   .addEdge(START, "classify")
 
   .addConditionalEdges("classify", intentRouter, {
-    question: "query_rewrite",
+    question: "source_selector",
 
-    research: "query_rewrite",
+    research: "source_selector",
 
     task: "reason",
 
     memory: "extract_memory",
 
     clarify: "clarify",
+  })
+
+  .addConditionalEdges("source_selector", sourceRouter, {
+    memory: "reason",
+    tools: "reason",
+    documents: "query_rewrite",
+    hybrid: "query_rewrite",
   })
 
   .addEdge("query_rewrite", "retrieve")

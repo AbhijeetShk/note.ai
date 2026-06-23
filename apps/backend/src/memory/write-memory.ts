@@ -1,49 +1,45 @@
 import { GraphState } from "../types/state.js";
+import { supabase } from "../index.js";
 import { retrieveMemory } from "./retrieve-memory.js";
 import { storeMemory } from "./store-memory.js";
 
 export async function writeMemory(
   state: typeof GraphState.State
 ) {
-    console.log(
-  "WRITING MEMORY",
-  {
-    memory:
-      state.extractedMemory,
-    user:
-      state.userId,
-  }
-);
-  if (
-    !state.extractedMemory
-  ) {
+  console.log(
+    "Entering write MEMORY",
+    {
+      memory: state.extractedMemory,
+      user: state.userId,
+    }
+  );
+
+  const memoryText = state.extractedMemory?.trim();
+  if (!memoryText) {
     return {};
   }
 
-  const existing =
-    await retrieveMemory(
-      state.extractedMemory,
-      state.userId
-    );
+  const { data: existing, error } =
+    await supabase
+      .from("memories")
+      .select("id")
+      .eq("user_id", state.userId)
+      .eq("content", memoryText)
+      .limit(1);
 
-const exactMatch =
-  existing.some(
-    (m) =>
-      m.pageContent
-        .toLowerCase()
-        .trim() ===
-      state.extractedMemory
-        .toLowerCase()
-        .trim()
-  );
+  if (error) {
+    console.error("Memory exact-match check failed", error);
+  }
 
-if (exactMatch) {
-  return {};
-}
-  await storeMemory(
-    state.extractedMemory,
-    state.userId
-  );
+  if (existing?.length) {
+    console.log("Duplicate memory detected, skipping write", {
+      memory: memoryText,
+      user: state.userId,
+    });
+    return {};
+  }
+
+  await storeMemory(memoryText, state.userId);
 
   return {};
 }

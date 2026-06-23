@@ -3,7 +3,23 @@ import { buildGroundingContext } from "../memory/grounding-context.js";
 import { CitationVerificationSchema } from "./schema.js";
 
 export async function verifyCitations(state: any) {
-  // console.log("ENTERING verifyCitations");
+  console.log("ENTERING verifyCitations");
+  console.log(
+  "VERIFY STATE UPDATE",
+  {
+    hasCitationVerification:
+      !!state.citationVerification,
+  }
+);
+console.log(
+  "STATE SIZES",
+  {
+    messages: state.messages.length,
+    observations: state.observations.length,
+    thoughts: state.reasoningTrace.length,
+    actions: state.actionHistory.length,
+  }
+);
   const question = state.messages.at(-1)?.content ?? "";
 
   const context = state.compressedContext;
@@ -18,11 +34,11 @@ export async function verifyCitations(state: any) {
   //   "CONTEXT LENGTH:",
   //   context.length
   // );
-
+console.time("verify");
   const structured = synthesisLLM.withStructuredOutput(
     CitationVerificationSchema,
   );
-
+console.timeEnd("verify");
  const groundingContext =
   buildGroundingContext(state);
   const result = await structured.invoke(`
@@ -44,7 +60,16 @@ Return:
 - reasoning
 - unsupportedClaims
 `);
-
+console.log(
+  "VERIFY RETURN",
+  result
+);
+console.log("VERIFY STATE SIZE", {
+  messages: state.messages.length,
+  observations: state.observations.length,
+  reasoningTrace: state.reasoningTrace.length,
+  actionHistory: state.actionHistory.length,
+});
   return {
     citationVerification: result,
   };

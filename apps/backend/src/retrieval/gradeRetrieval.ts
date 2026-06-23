@@ -1,12 +1,14 @@
 import { plannerLLM } from "../index.js";
 import { GraphState } from "../types/state.js";
 import { RetrievalGradeSchema } from "./schema.js";
-
+console.log(
+  "NEW RETRIEVAL GRADER LOADED"
+);
 export async function gradeRetrieval(
   state: typeof GraphState.State
 ) {
   console.log(
-    "ENTERING gradeRetrieval"
+    "ENTERING ah gradeRetrieval"
   );
 
   const question =
@@ -81,17 +83,19 @@ Mostly relevant
 Highly relevant and directly useful
 `);
 
-  console.log({
-    retrievalRelevant:
-      result.relevant,
+//   console.log({
+//     retrievalRelevant:
+//       result.relevant,
 
-    retrievalScore:
-      result.score,
+//     retrievalScore:
+//       result.score,
 
-    reasoning:
-      result.reasoning,
-  });
-
+//     reasoning:
+//       result.reasoning,
+//   });
+  console.log(
+    "completed gradeRetrieval", result
+  );
   return {
     retrievalRelevant:
       result.relevant,
