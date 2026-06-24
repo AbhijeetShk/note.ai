@@ -232,4 +232,43 @@ retrievalRelevant:
 
     default: () => false,
   }),
+  executionPlan: Annotation<{
+  intent:
+    | "question"
+    | "research"
+    | "memory"
+    | "task"
+    | "clarify";
+
+  source:
+    | "documents"
+    | "memory"
+    | "hybrid"
+    | "tools";
+
+  retrievalMode:
+    | "fast"
+    | "balanced"
+    | "accurate";
+
+  reasoning: string;
+
+  confidence: number;
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
+reasoningEvaluation:
+Annotation<{
+  continueReasoning: boolean;
+  reasoning: string;
+} | null>({
+  reducer: (_, update) => update,
+  default: () => null,
+}),
+reasoningLoopCount:
+Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
 });

@@ -57,6 +57,14 @@ const finishApproved =
   informationGain,
   finishApproved,
 });
+if (
+  state.reasoningEvaluation
+    ?.continueReasoning
+) {
+  return {
+    finishApproved: false,
+  };
+}
   //If want too permissive:
   //   const finishApproved =
   //     confidence >= 0.7 ||

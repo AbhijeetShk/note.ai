@@ -33,6 +33,11 @@ import { classify } from "../intentClassify/classify.js";
 import { buildGroundingContext } from "../memory/grounding-context.js";
 import { gradeRetrieval } from "../retrieval/gradeRetrieval.js";
 import { retrievalRouter } from "../retrieval/retrievalRouter.js";
+import { retrieveMemoryNode } from "../memory/retrieve-memory-node.js";
+import { plan } from "../executionPlanner/executionPlan.js";
+import { evaluateReasoning } from "../reasoning/evaluateReasoning.js";
+import { reasoningRouter } from "../reasoning/reasoningRouter.js";
+import { plannerRouter } from "../executionPlanner/plannerRouter.js";
 dotenv.config();
 
 type Message = {
@@ -129,78 +134,78 @@ async function retrieve(state: typeof GraphState.State) {
   };
 }
 
-async function sourceSelector(
-  state: typeof GraphState.State
-) {
-  const question = state.messages
-    .at(-1)
-    ?.content?.trim()
-    .toLowerCase() || "";
+// async function sourceSelector(
+//   state: typeof GraphState.State
+// ) {
+//   const question = state.messages
+//     .at(-1)
+//     ?.content?.trim()
+//     .toLowerCase() || "";
 
-  const memoryTriggers = [
-    "what project",
-    "what am i working",
-    "what am i building",
-    "what am i working on",
-    "my project",
-    "my work",
-    "my job",
-    "what am i",
-    "where am i working",
-    "remember",
-    "did i",
-    "am i working",
-  ];
+//   const memoryTriggers = [
+//     "what project",
+//     "what am i working",
+//     "what am i building",
+//     "what am i working on",
+//     "my project",
+//     "my work",
+//     "my job",
+//     "what am i",
+//     "where am i working",
+//     "remember",
+//     "did i",
+//     "am i working",
+//   ];
 
-  const documentTriggers = [
-    "compare",
-    "analyze",
-    "research",
-    "what is",
-    "why",
-    "how",
-    "explain",
-    "describe",
-    "difference",
-    "tradeoff",
-  ];
+//   const documentTriggers = [
+//     "compare",
+//     "analyze",
+//     "research",
+//     "what is",
+//     "why",
+//     "how",
+//     "explain",
+//     "describe",
+//     "difference",
+//     "tradeoff",
+//   ];
 
-  if (
-    state.intent === "memory" ||
-    memoryTriggers.some((trigger) => question.includes(trigger))
-  ) {
-    return {
-      retrievalSource: "memory",
-    };
-  }
+//   if (
+//     state.intent === "memory" ||
+//     memoryTriggers.some((trigger) => question.includes(trigger))
+//   ) {
+//     return {
+//       retrievalSource: "memory",
+//     };
+//   }
 
-  if (
-    documentTriggers.some((trigger) =>
-      question.includes(trigger)
-    )
-  ) {
-    return {
-      retrievalSource: "documents",
-    };
-  }
+//   if (
+//     documentTriggers.some((trigger) =>
+//       question.includes(trigger)
+//     )
+//   ) {
+//     return {
+//       retrievalSource: "documents",
+//     };
+//   }
 
-  return {
-    retrievalSource: "hybrid",
-  };
-}
+//   return {
+//     retrievalSource: "hybrid",
+//   };
+// }
 
-export function sourceRouter(
-  state: typeof GraphState.State
-) {
-  if (
-    state.retrievalSource === "memory" ||
-    state.retrievalSource === "tools"
-  ) {
-    return "reason";
-  }
+// export function sourceRouter(
+//   state: typeof GraphState.State
+// ) {
+//   if (
+//     state.retrievalSource === "memory" ||
+//     state.retrievalSource === "tools"
+//   ) {
+//     return "reason";
+//   }
 
-  return "query_rewrite";
-}
+//   return "query_rewrite";
+// }
 
 // async function gradeRetrieval(state: typeof GraphState.State) {
 //   const docs = state.rerankedDocs;
@@ -447,101 +452,340 @@ export async function reflect(state: any) {
   };
 }
 export const graph = new StateGraph(GraphState)
+
+  // Planning
+
   .addNode("classify", classify)
-  .addNode("source_selector", sourceSelector)
+  .addNode("planner", plan)
 
-  .addNode("query_rewrite", queryRewrite)
-  .addNode("retrieve", retrieve)
-  .addNode("rerank", rerankDocuments)
-  .addNode("compress_context", compressContext)
-  .addNode("grade_retrieval", gradeRetrieval)
-  .addNode("retry_retrieval", retryRetrieval)
+  // Retrieval
 
-  .addNode("clarify", clarify)
+  .addNode(
+    "retrieve_memory",
+    retrieveMemoryNode
+  )
 
-  .addNode("reason", reason)
-  .addNode("execute_tools", executeTools)
-  .addNode("evaluate_finish", evaluateFinish)
-  .addNode("extract_citations", extractCitations)
-  .addNode("synthesize", synthesize)
+  .addNode(
+    "query_rewrite",
+    queryRewrite
+  )
 
-  .addNode("verify_citations", verifyCitations)
-  .addNode("hallucination_check", hallucinationCheck)
+  .addNode(
+    "retrieve",
+    retrieve
+  )
 
-  .addNode("grade_response", gradeResponse)
-  .addNode("improve_answer", improveAnswer)
+  .addNode(
+    "rerank",
+    rerankDocuments
+  )
 
-  .addNode("extract_memory", extractMemory)
-  .addNode("write_memory", writeMemory)
+  .addNode(
+    "compress_context",
+    compressContext
+  )
 
-  .addEdge(START, "classify")
+  .addNode(
+    "grade_retrieval",
+    gradeRetrieval
+  )
 
-  .addConditionalEdges("classify", intentRouter, {
-    question: "source_selector",
+  .addNode(
+    "retry_retrieval",
+    retryRetrieval
+  )
 
-    research: "source_selector",
+  // Clarification
 
-    task: "reason",
+  .addNode(
+    "clarify",
+    clarify
+  )
 
-    memory: "extract_memory",
+  // Reasoning
 
-    clarify: "clarify",
-  })
+  .addNode(
+    "reason",
+    reason
+  )
 
-  .addConditionalEdges("source_selector", sourceRouter, {
-    memory: "reason",
-    tools: "reason",
-    documents: "query_rewrite",
-    hybrid: "query_rewrite",
-  })
+  .addNode(
+    "execute_tools",
+    executeTools
+  )
 
-  .addEdge("query_rewrite", "retrieve")
-  .addEdge("retrieve", "rerank")
-  .addEdge("rerank", "compress_context")
-  .addEdge("compress_context", "grade_retrieval")
+  .addNode(
+    "evaluate_reasoning",
+    evaluateReasoning
+  )
 
-  .addConditionalEdges("grade_retrieval", retrievalRouter, {
-    retry: "retry_retrieval",
-    planner: "reason",
-    clarify: "clarify",
-  })
+  .addNode(
+    "evaluate_finish",
+    evaluateFinish
+  )
 
-  .addEdge("retry_retrieval", "query_rewrite")
+  // Synthesis
 
-  .addConditionalEdges("reason", reactRouter, {
-    execute_tools: "execute_tools",
+  .addNode(
+    "extract_citations",
+    extractCitations
+  )
 
-    evaluate_finish: "evaluate_finish",
-  })
+  .addNode(
+    "synthesize",
+    synthesize
+  )
 
-  .addEdge("execute_tools", "reason")
-  .addConditionalEdges("evaluate_finish", finishRouter, {
-    synthesize: "extract_citations",
+  // Verification
 
-    reason: "reason",
-  })
+  .addNode(
+    "verify_citations",
+    verifyCitations
+  )
 
-  .addEdge("extract_citations", "synthesize")
+  .addNode(
+    "hallucination_check",
+    hallucinationCheck
+  )
 
-  .addEdge("synthesize", "verify_citations")
+  .addNode(
+    "grade_response",
+    gradeResponse
+  )
 
-  .addEdge("verify_citations", "hallucination_check")
+  .addNode(
+    "improve_answer",
+    improveAnswer
+  )
 
-  .addEdge("hallucination_check", "grade_response")
+  // Memory
 
-  .addConditionalEdges("grade_response", reflectionRouter, {
-    improve: "improve_answer",
+  .addNode(
+    "extract_memory",
+    extractMemory
+  )
 
-    done: "extract_memory",
-  })
+  .addNode(
+    "write_memory",
+    writeMemory
+  )
 
-  .addEdge("improve_answer", "grade_response")
 
-  .addEdge("extract_memory", "write_memory")
+  .addEdge(
+    START,
+    "classify"
+  )
 
-  .addEdge("write_memory", END)
 
-  .addEdge("clarify", END)
+  // intent routing
+
+
+  .addConditionalEdges(
+    "classify",
+    intentRouter,
+    {
+      question: "planner",
+
+      research: "planner",
+
+      memory: "planner",
+
+      task: "reason",
+
+      clarify: "clarify",
+    }
+  )
+
+
+  // planner routing
+
+
+.addConditionalEdges(
+  "planner",
+  plannerRouter,
+  {
+    retrieve_memory:
+      "retrieve_memory",
+
+    query_rewrite:
+      "query_rewrite",
+
+    hybrid_retrieve:
+      "query_rewrite",
+
+    reason:
+      "reason",
+  }
+)
+
+
+  // Mem Path
+
+
+  .addEdge(
+    "retrieve_memory",
+    "reason"
+  )
+
+
+  // Doc Retrieval Path
+
+
+  .addEdge(
+    "query_rewrite",
+    "retrieve"
+  )
+
+  .addEdge(
+    "retrieve",
+    "rerank"
+  )
+
+  .addEdge(
+    "rerank",
+    "compress_context"
+  )
+
+  .addEdge(
+    "compress_context",
+    "grade_retrieval"
+  )
+
+  .addConditionalEdges(
+    "grade_retrieval",
+    retrievalRouter,
+    {
+      retry:
+        "retry_retrieval",
+
+      planner:
+        "reason",
+
+      clarify:
+        "clarify",
+    }
+  )
+
+  .addEdge(
+    "retry_retrieval",
+    "query_rewrite"
+  )
+
+
+  // ReAct Loop
+
+
+  .addConditionalEdges(
+    "reason",
+    reactRouter,
+    {
+      execute_tools:
+        "execute_tools",
+
+      evaluate_finish:
+        "evaluate_reasoning",
+    }
+  )
+
+  .addEdge(
+    "execute_tools",
+    "reason"
+  )
+
+
+  // eval reasoning
+
+
+  .addConditionalEdges(
+    "evaluate_reasoning",
+    reasoningRouter,
+    {
+      reason:
+        "reason",
+
+      evaluate_finish:
+        "evaluate_finish",
+    }
+  )
+
+
+  // evaluation finishing
+
+
+  .addConditionalEdges(
+    "evaluate_finish",
+    finishRouter,
+    {
+      synthesize:
+        "extract_citations",
+
+      reason:
+        "reason",
+    }
+  )
+
+
+  // generate answer
+
+
+  .addEdge(
+    "extract_citations",
+    "synthesize"
+  )
+
+  .addEdge(
+    "synthesize",
+    "verify_citations"
+  )
+
+  .addEdge(
+    "verify_citations",
+    "hallucination_check"
+  )
+
+  .addEdge(
+    "hallucination_check",
+    "grade_response"
+  )
+
+
+  // reflection loop
+
+
+  .addConditionalEdges(
+    "grade_response",
+    reflectionRouter,
+    {
+      improve:
+        "improve_answer",
+
+      done:
+        "extract_memory",
+    }
+  )
+
+  .addEdge(
+    "improve_answer",
+    "grade_response"
+  )
+
+
+  // mem writeback
+
+  .addEdge(
+    "extract_memory",
+    "write_memory"
+  )
+
+  .addEdge(
+    "write_memory",
+    END
+  )
+
+  .addEdge(
+    "clarify",
+    END
+  )
 
   .compile({
     checkpointer,
