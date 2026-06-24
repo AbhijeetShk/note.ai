@@ -32,7 +32,7 @@ Return structured output only.
 
   return {
     executionPlan: result,
-
+    reasoningLoopCount: 0,
     intent: result.intent,
 
     retrievalMode:

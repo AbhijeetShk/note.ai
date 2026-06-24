@@ -61,8 +61,13 @@ if (
   state.reasoningEvaluation
     ?.continueReasoning
 ) {
+    console.log(
+    "Reasoning evaluator requires continuation"
+  );
   return {
     finishApproved: false,
+    finishAttempts:
+      state.finishAttempts + 1,
   };
 }
   //If want too permissive:

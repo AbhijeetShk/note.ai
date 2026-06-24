@@ -38,6 +38,8 @@ import { plan } from "../executionPlanner/executionPlan.js";
 import { evaluateReasoning } from "../reasoning/evaluateReasoning.js";
 import { reasoningRouter } from "../reasoning/reasoningRouter.js";
 import { plannerRouter } from "../executionPlanner/plannerRouter.js";
+import { hybridRetrieve } from "../retrieval/retrieveHybridNode.js";
+import { retrievalQualityRouter } from "../retrieval/retrievalQualityRouter.js";
 dotenv.config();
 
 type Message = {
@@ -483,7 +485,10 @@ export const graph = new StateGraph(GraphState)
   .addNode(
     "compress_context",
     compressContext
-  )
+  ).addNode(
+  "hybrid_retrieve",
+  hybridRetrieve
+)
 
   .addNode(
     "grade_retrieval",
@@ -611,10 +616,11 @@ export const graph = new StateGraph(GraphState)
       "query_rewrite",
 
     hybrid_retrieve:
-      "query_rewrite",
+      "hybrid_retrieve",
 
     reason:
       "reason",
+      
   }
 )
 
@@ -639,7 +645,10 @@ export const graph = new StateGraph(GraphState)
   .addEdge(
     "retrieve",
     "rerank"
-  )
+  ).addEdge(
+  "hybrid_retrieve",
+  "rerank"
+)
 
   .addEdge(
     "rerank",
@@ -653,7 +662,7 @@ export const graph = new StateGraph(GraphState)
 
   .addConditionalEdges(
     "grade_retrieval",
-    retrievalRouter,
+    retrievalQualityRouter,
     {
       retry:
         "retry_retrieval",
