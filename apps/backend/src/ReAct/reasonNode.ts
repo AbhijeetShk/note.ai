@@ -14,6 +14,31 @@ export async function reason(state: typeof GraphState.State) {
 
     thoughts: state.reasoningTrace.length,
   });
+//   search_documents
+// - Search indexed documents
+// - Use when information is missing
+
+// calculator
+// - Evaluate mathematical expressions
+// - Input should be only a valid expression
+// - Examples:
+//   2+2
+//   (15*8)/3
+//   sqrt(144)
+
+// memory_search
+// - Retrieve relevant memories
+// - Use when previous user context
+//   may help answer the question
+
+// finish
+// - Use only when sufficient information exists
+//   to answer the question
+
+  const availableTools =
+  state.allowedTools
+    .map((t) => `- ${t}`)
+    .join("\n");
   const question = state.messages.at(-1)?.content ?? "";
 
   const thoughts = state.reasoningTrace
@@ -59,26 +84,8 @@ ${question}
 
 Available Tools:
 
-search_documents
-- Search indexed documents
-- Use when information is missing
 
-calculator
-- Evaluate mathematical expressions
-- Input should be only a valid expression
-- Examples:
-  2+2
-  (15*8)/3
-  sqrt(144)
-
-memory_search
-- Retrieve relevant memories
-- Use when previous user context
-  may help answer the question
-
-finish
-- Use only when sufficient information exists
-  to answer the question
+${availableTools}
 
 Previous Thoughts:
 ${thoughts}
@@ -223,6 +230,47 @@ Return a JSON object with:
 - confidence:
   number between 0 and 1
 `);
+
+if (
+  !state.allowedTools.includes(
+    result.action
+  )
+) {
+  console.log(
+    "Planner policy violation",
+    {
+      action:
+        result.action,
+
+      allowed:
+        state.allowedTools,
+    }
+  );
+
+  return {
+    nextAction: {
+      tool: "finish",
+      input: "",
+    },
+
+    reasoningTrace: [
+      {
+        thought:
+          "Planner policy violation",
+
+        reasoning:
+          `${result.action} is not allowed by planner policy`,
+
+        action: "finish",
+
+        input: "",
+
+        confidence: 1,
+      },
+    ],
+  };
+}
+
   console.log("ACTION:", result.action, result.input);
   console.log("ITERATION:", state.iterationCount);
   console.log(

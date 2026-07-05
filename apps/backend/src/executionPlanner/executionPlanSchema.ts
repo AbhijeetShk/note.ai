@@ -22,6 +22,12 @@ export const ExecutionPlanSchema = z.object({
     "accurate",
   ]),
 
+  toolPolicy: z.enum([
+    "restricted",
+    "normal",
+    "research",
+  ]),
+
   reasoning: z.string(),
 
   confidence: z.number(),

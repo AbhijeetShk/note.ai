@@ -232,7 +232,7 @@ retrievalRelevant:
 
     default: () => false,
   }),
-  executionPlan: Annotation<{
+executionPlan: Annotation<{
   intent:
     | "question"
     | "research"
@@ -250,6 +250,11 @@ retrievalRelevant:
     | "fast"
     | "balanced"
     | "accurate";
+
+  toolPolicy:
+    | "restricted"
+    | "normal"
+    | "research";
 
   reasoning: string;
 
@@ -270,5 +275,17 @@ reasoningLoopCount:
 Annotation<number>({
   reducer: (_, update) => update,
   default: () => 0,
+}),
+allowedTools: Annotation<
+  (
+    | "search_documents"
+    | "calculator"
+    | "memory_search"
+    | "finish"
+  )[]
+>({
+  reducer: (_, update) => update,
+
+  default: () => [],
 }),
 });

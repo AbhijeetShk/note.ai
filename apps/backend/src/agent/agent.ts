@@ -40,6 +40,7 @@ import { reasoningRouter } from "../reasoning/reasoningRouter.js";
 import { plannerRouter } from "../executionPlanner/plannerRouter.js";
 import { hybridRetrieve } from "../retrieval/retrieveHybridNode.js";
 import { retrievalQualityRouter } from "../retrieval/retrievalQualityRouter.js";
+import { plannerConfidenceRouter } from "../executionPlanner/plannerConfidenceRouter.js";
 dotenv.config();
 
 type Message = {
@@ -126,10 +127,7 @@ async function retrieve(state: typeof GraphState.State) {
   // console.log("ENTERING retrieve");
   const question = state.messages[state.messages.length - 1]?.content || "";
 
-  const docs = await retrieveHybrid(
-    question,
-    state.retrievalMode,
-  );
+  const docs = await retrieveHybrid(question, state.retrievalMode);
 
   return {
     retrievedDocs: docs,
@@ -257,7 +255,7 @@ ${o.tool}: ${o.result}`,
     )
     .join("\n");
 
-const prompt = `
+  const prompt = `
 Question:
 ${question}
 
@@ -292,7 +290,7 @@ Do not ignore memory results.
 `;
 
   const result = await synthesisLLM.invoke(prompt);
-console.log("SYNTHESIZE RETURNING MESSAGE");
+  console.log("SYNTHESIZE RETURNING MESSAGE");
   return {
     synthesis: String(result.content),
 
@@ -462,339 +460,163 @@ export const graph = new StateGraph(GraphState)
 
   // Retrieval
 
-  .addNode(
-    "retrieve_memory",
-    retrieveMemoryNode
-  )
+  .addNode("retrieve_memory", retrieveMemoryNode)
 
-  .addNode(
-    "query_rewrite",
-    queryRewrite
-  )
+  .addNode("query_rewrite", queryRewrite)
 
-  .addNode(
-    "retrieve",
-    retrieve
-  )
+  .addNode("retrieve", retrieve)
 
-  .addNode(
-    "rerank",
-    rerankDocuments
-  )
+  .addNode("rerank", rerankDocuments)
 
-  .addNode(
-    "compress_context",
-    compressContext
-  ).addNode(
-  "hybrid_retrieve",
-  hybridRetrieve
-)
+  .addNode("compress_context", compressContext)
+  .addNode("hybrid_retrieve", hybridRetrieve)
 
-  .addNode(
-    "grade_retrieval",
-    gradeRetrieval
-  )
+  .addNode("grade_retrieval", gradeRetrieval)
 
-  .addNode(
-    "retry_retrieval",
-    retryRetrieval
-  )
+  .addNode("retry_retrieval", retryRetrieval)
 
   // Clarification
 
-  .addNode(
-    "clarify",
-    clarify
-  )
+  .addNode("clarify", clarify)
 
   // Reasoning
 
-  .addNode(
-    "reason",
-    reason
-  )
+  .addNode("reason", reason)
 
-  .addNode(
-    "execute_tools",
-    executeTools
-  )
+  .addNode("execute_tools", executeTools)
 
-  .addNode(
-    "evaluate_reasoning",
-    evaluateReasoning
-  )
+  .addNode("evaluate_reasoning", evaluateReasoning)
 
-  .addNode(
-    "evaluate_finish",
-    evaluateFinish
-  )
+  .addNode("evaluate_finish", evaluateFinish)
 
   // Synthesis
 
-  .addNode(
-    "extract_citations",
-    extractCitations
-  )
+  .addNode("extract_citations", extractCitations)
 
-  .addNode(
-    "synthesize",
-    synthesize
-  )
+  .addNode("synthesize", synthesize)
 
   // Verification
 
-  .addNode(
-    "verify_citations",
-    verifyCitations
-  )
+  .addNode("verify_citations", verifyCitations)
 
-  .addNode(
-    "hallucination_check",
-    hallucinationCheck
-  )
+  .addNode("hallucination_check", hallucinationCheck)
 
-  .addNode(
-    "grade_response",
-    gradeResponse
-  )
+  .addNode("grade_response", gradeResponse)
 
-  .addNode(
-    "improve_answer",
-    improveAnswer
-  )
+  .addNode("improve_answer", improveAnswer)
 
   // Memory
 
-  .addNode(
-    "extract_memory",
-    extractMemory
-  )
+  .addNode("extract_memory", extractMemory)
 
-  .addNode(
-    "write_memory",
-    writeMemory
-  )
+  .addNode("write_memory", writeMemory)
 
-
-  .addEdge(
-    START,
-    "classify"
-  )
-
+  .addEdge(START, "classify")
 
   // intent routing
 
+  .addConditionalEdges("classify", intentRouter, {
+    question: "planner",
 
-  .addConditionalEdges(
-    "classify",
-    intentRouter,
-    {
-      question: "planner",
+    research: "planner",
 
-      research: "planner",
+    memory: "planner",
 
-      memory: "planner",
+    task: "reason",
 
-      task: "reason",
-
-      clarify: "clarify",
-    }
-  )
-
+    clarify: "clarify",
+  })
 
   // planner routing
 
+  .addConditionalEdges("planner", plannerRouter, {
+    retrieve_memory: "retrieve_memory",
 
-.addConditionalEdges(
-  "planner",
-  plannerRouter,
-  {
-    retrieve_memory:
-      "retrieve_memory",
+    query_rewrite: "query_rewrite",
 
-    query_rewrite:
-      "query_rewrite",
+    hybrid_retrieve: "hybrid_retrieve",
 
-    hybrid_retrieve:
-      "hybrid_retrieve",
-
-    reason:
-      "reason",
-      
-  }
-)
-
+    reason: "reason",
+  })
 
   // Mem Path
 
-
-  .addEdge(
-    "retrieve_memory",
-    "reason"
-  )
-
+  .addEdge("retrieve_memory", "reason")
 
   // Doc Retrieval Path
 
+  .addEdge("query_rewrite", "retrieve")
 
-  .addEdge(
-    "query_rewrite",
-    "retrieve"
-  )
+  .addEdge("retrieve", "rerank")
+  .addEdge("hybrid_retrieve", "rerank")
 
-  .addEdge(
-    "retrieve",
-    "rerank"
-  ).addEdge(
-  "hybrid_retrieve",
-  "rerank"
-)
+  .addEdge("rerank", "compress_context")
 
-  .addEdge(
-    "rerank",
-    "compress_context"
-  )
+  .addEdge("compress_context", "grade_retrieval")
 
-  .addEdge(
-    "compress_context",
-    "grade_retrieval"
-  )
+  .addConditionalEdges("grade_retrieval", retrievalQualityRouter, {
+    retry: "retry_retrieval",
 
-  .addConditionalEdges(
-    "grade_retrieval",
-    retrievalQualityRouter,
-    {
-      retry:
-        "retry_retrieval",
+    planner: "reason",
 
-      planner:
-        "reason",
+    clarify: "clarify",
+  })
 
-      clarify:
-        "clarify",
-    }
-  )
-
-  .addEdge(
-    "retry_retrieval",
-    "query_rewrite"
-  )
-
+  .addEdge("retry_retrieval", "query_rewrite")
 
   // ReAct Loop
 
+  .addConditionalEdges("reason", reactRouter, {
+    execute_tools: "execute_tools",
 
-  .addConditionalEdges(
-    "reason",
-    reactRouter,
-    {
-      execute_tools:
-        "execute_tools",
+    evaluate_finish: "evaluate_reasoning",
+  })
 
-      evaluate_finish:
-        "evaluate_reasoning",
-    }
-  )
-
-  .addEdge(
-    "execute_tools",
-    "reason"
-  )
-
+  .addEdge("execute_tools", "reason")
 
   // eval reasoning
 
+  .addConditionalEdges("evaluate_reasoning", reasoningRouter, {
+    reason: "reason",
 
-  .addConditionalEdges(
-    "evaluate_reasoning",
-    reasoningRouter,
-    {
-      reason:
-        "reason",
-
-      evaluate_finish:
-        "evaluate_finish",
-    }
-  )
-
+    evaluate_finish: "evaluate_finish",
+  })
 
   // evaluation finishing
 
+  .addConditionalEdges("evaluate_finish", finishRouter, {
+    synthesize: "extract_citations",
 
-  .addConditionalEdges(
-    "evaluate_finish",
-    finishRouter,
-    {
-      synthesize:
-        "extract_citations",
-
-      reason:
-        "reason",
-    }
-  )
-
+    reason: "reason",
+  })
 
   // generate answer
 
+  .addEdge("extract_citations", "synthesize")
 
-  .addEdge(
-    "extract_citations",
-    "synthesize"
-  )
+  .addEdge("synthesize", "verify_citations")
 
-  .addEdge(
-    "synthesize",
-    "verify_citations"
-  )
+  .addEdge("verify_citations", "hallucination_check")
 
-  .addEdge(
-    "verify_citations",
-    "hallucination_check"
-  )
-
-  .addEdge(
-    "hallucination_check",
-    "grade_response"
-  )
-
+  .addEdge("hallucination_check", "grade_response")
 
   // reflection loop
 
+  .addConditionalEdges("grade_response", reflectionRouter, {
+    improve: "improve_answer",
 
-  .addConditionalEdges(
-    "grade_response",
-    reflectionRouter,
-    {
-      improve:
-        "improve_answer",
+    done: "extract_memory",
+  })
 
-      done:
-        "extract_memory",
-    }
-  )
-
-  .addEdge(
-    "improve_answer",
-    "grade_response"
-  )
-
+  .addEdge("improve_answer", "grade_response")
 
   // mem writeback
 
-  .addEdge(
-    "extract_memory",
-    "write_memory"
-  )
+  .addEdge("extract_memory", "write_memory")
 
-  .addEdge(
-    "write_memory",
-    END
-  )
+  .addEdge("write_memory", END)
 
-  .addEdge(
-    "clarify",
-    END
-  )
+  .addEdge("clarify", END)
 
   .compile({
     checkpointer,
