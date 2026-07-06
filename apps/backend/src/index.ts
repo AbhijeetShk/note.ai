@@ -16,6 +16,8 @@ import { GraphState } from "./types/state.js";
 import { RewriteSchema } from "./planner/schema.js";
 import { hybridSearch } from "./retrieval/hybridSearch.js";
 import { parentSplitter } from "./ingestion/parentChild/parentSplitter.js";
+import { mapParentsToDocs } from "./retrieval/mapParentstoDocs.js";
+import { fetchParents } from "./retrieval/fetchParent.js";
 
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
@@ -160,9 +162,20 @@ export async function retrieveHybrid(
     ),
   );
 
-  allDocs = results.flat();
+allDocs = results.flat();
 
-  return dedupeDocs(allDocs).slice(0, config.k);
+const retrievedChildren =
+  dedupeDocs(allDocs);
+
+const parents =
+  await fetchParents(
+    retrievedChildren,
+  );
+
+const parentDocs =
+  mapParentsToDocs(parents);
+
+return parentDocs;
 }
 
 function formatCitations(docs: any[]) {
