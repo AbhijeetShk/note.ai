@@ -1,3 +1,4 @@
+import { Document } from "@langchain/core/documents";
 import { supabase } from "../config/supabase.js";
 
 type SparseSearchResult = {
@@ -24,10 +25,14 @@ export async function sparseRetrieve(
 
   return (
     (data as SparseSearchResult[] | null)?.map(
-      (doc: SparseSearchResult, rank: number) => ({
+      (doc, rank) => ({
         id: doc.id,
         rank,
-        document: doc,
+        document: new Document({
+          pageContent: doc.content,
+          metadata: doc.metadata,
+          id: doc.id.toString(),
+        }),
       }),
     ) ?? []
   );
