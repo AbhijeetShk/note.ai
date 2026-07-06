@@ -107,7 +107,7 @@ async function loadPdf(path: string, documentId?: string) {
   console.log(`Indexed ${enriched.length} chunks`);
 }
 
-function buildRetriever(
+export function buildRetriever(
   k = 6,
   searchType: "mmr" | "similarity" = "mmr",
   source?: string,
