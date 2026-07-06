@@ -3,7 +3,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { EmbeddingsInterface } from "@langchain/core/embeddings";
 import {childSplitter} from "./childSplitter.js";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { ParentDocument } from "../../types/retrieval-evaluator-type.js";
+import { ParentDocument } from "../../types/retrieval-type.js";
 
 export interface ChildMetadata {
   parent_id: string;
