@@ -1,4 +1,4 @@
-import { supabase } from "../../index.js";
+import { supabase } from "../../config/supabase.js";
 
 export async function storeParents(
   parentDocs: any[],

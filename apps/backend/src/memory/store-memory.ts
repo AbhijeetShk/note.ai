@@ -1,4 +1,6 @@
-import { embeddings, supabase } from "../index.js";
+
+import { embeddings } from "../config/embeddings.js";
+import { supabase } from "../config/supabase.js";
 import { memoryStore } from "./vector-store.js";
 
 export async function storeMemory(

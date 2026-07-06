@@ -1,5 +1,5 @@
 import { GraphState } from "../types/state.js";
-import { supabase } from "../index.js";
+import {supabase} from "../config/supabase.js";
 import { retrieveMemory } from "./retrieve-memory.js";
 import { storeMemory } from "./store-memory.js";
 import { retrieveMemoryWithScores } from "./retrieveMemoryWithScores.js";

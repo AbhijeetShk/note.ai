@@ -10,31 +10,24 @@ import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
 import { z } from "zod";
-import "./compare.js";
+
 import { tool } from "@langchain/core/tools";
 import { GraphState } from "./types/state.js";
 import { RewriteSchema } from "./planner/schema.js";
 import { hybridSearch } from "./retrieval/hybridSearch.js";
 import { parentSplitter } from "./ingestion/parentChild/parentSplitter.js";
-import { mapParentsToDocs } from "./retrieval/mapParentstoDocs.js";
+import { mapParentsToDocs } from "./retrieval/mapParentsToDocs.js";
 import { fetchParents } from "./retrieval/fetchParent.js";
-
+import { embeddings } from "./config/embeddings.js";
+import { supabase } from "./config/supabase.js";
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
 const AnswerSchema = z.object({
   answer: z.string(),
   confidence: z.number().min(0).max(1),
 });
+console.log("INDEX LOADED");
 
-export const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!,
-);
-
-export const embeddings = new HuggingFaceInferenceEmbeddings({
-  apiKey: process.env.HUGGINGFACEHUB_API_KEY,
-  model: "BAAI/bge-base-en-v1.5",
-});
 
 // for query_rewrite
 // planner

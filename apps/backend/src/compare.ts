@@ -8,18 +8,9 @@ import { ChatGroq } from "@langchain/groq";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
 import { plannerLLM, synthesisLLM } from "./index.js";
-
+import { embeddings } from "./config/embeddings.js";
+import { supabase } from "./config/supabase.js";
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
-
-const embeddings = new HuggingFaceInferenceEmbeddings({
-  apiKey: process.env.HUGGINGFACEHUB_API_KEY,
-    model: "BAAI/bge-base-en-v1.5"
-});
 
 const llm = new ChatGroq({
   model: "llama-3.3-70b-versatile",

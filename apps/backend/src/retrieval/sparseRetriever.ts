@@ -1,4 +1,4 @@
-import { supabase } from "../index.js";
+import { supabase } from "../config/supabase.js";
 
 type SparseSearchResult = {
   id: number;

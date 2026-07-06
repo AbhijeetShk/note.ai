@@ -1,6 +1,7 @@
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { embeddings } from "../index.js";
-import { supabase } from "../index.js";
+import { supabase } from "../config/supabase.js";
+import { embeddings } from "../config/embeddings.js";
+
 
 export const memoryStore =
   new SupabaseVectorStore(
