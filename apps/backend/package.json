@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts"
+    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
+    "ingest": "tsx src/ingestion/scripts/ingestPdf.ts"
   },
   "keywords": [],
   "author": "",
@@ -35,6 +36,8 @@
     "langchain": "^1.4.0",
     "langsmith": "^0.7.9",
     "pdf-parse": "^1.1.1",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "wink-bm25-text-search": "^3.1.2",
+    "wink-nlp-utils": "^2.1.0"
   }
 }
