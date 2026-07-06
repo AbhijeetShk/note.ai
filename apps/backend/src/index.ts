@@ -15,6 +15,7 @@ import { tool } from "@langchain/core/tools";
 import { GraphState } from "./types/state.js";
 import { RewriteSchema } from "./planner/schema.js";
 import { hybridSearch } from "./retrieval/hybridSearch.js";
+import { parentSplitter } from "./ingestion/parentChild/parentSplitter.js";
 
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
@@ -79,7 +80,8 @@ function getModeConfig(mode: Mode) {
 
 async function loadPdf(path: string, documentId?: string) {
   const docs = await new PDFLoader(path).load();
-
+const parentDocs =
+  await parentSplitter.splitDocuments(docs);
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 900,
     chunkOverlap: 180,

@@ -7,3 +7,10 @@ export interface RetrievalMetrics {
 
   averageScore: number;
 }
+export interface ParentDocument {
+  id: number;
+  document_id: string;
+  parent_index: number;
+  content: string;
+  metadata: Record<string, any>;
+}
