@@ -14,6 +14,7 @@ import "./compare.js";
 import { tool } from "@langchain/core/tools";
 import { GraphState } from "./types/state.js";
 import { RewriteSchema } from "./planner/schema.js";
+import { hybridSearch } from "./retrieval/hybridSearch.js";
 
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
@@ -153,7 +154,7 @@ export async function retrieveHybrid(
   // changed to parallel retrieval for all query variants for low latency, better scaling, for further agent/tools integration
   const results = await Promise.all(
     queries.map((q) =>
-      buildRetriever(config.k, config.searchType, source).invoke(q),
+      hybridSearch(q, config.k, config.searchType, source),
     ),
   );
 
