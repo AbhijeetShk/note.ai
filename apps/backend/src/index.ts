@@ -165,9 +165,81 @@ const parents =
     retrievedChildren,
   );
 
+// ranking map from child retrieval order
+const parentScoreMap = new Map<
+  number,
+  number
+>();
+
+retrievedChildren.forEach(
+  (doc, rank) => {
+    const parentId =
+      doc.metadata?.parent_id;
+
+    if (!parentId) return;
+
+    // keeping best i.e lowest rank
+    if (
+      !parentScoreMap.has(parentId)
+    ) {
+      parentScoreMap.set(
+        parentId,
+        rank,
+      );
+    }
+  },
+);
+console.log(retrievedChildren[2], "strange");
+// sorting parents by best child rank
+parents.sort((a, b) => {
+  const scoreA =
+    parentScoreMap.get(a.id) ??
+    Number.MAX_SAFE_INTEGER;
+
+  const scoreB =
+    parentScoreMap.get(b.id) ??
+    Number.MAX_SAFE_INTEGER;
+
+  return scoreA - scoreB;
+});
+
 const parentDocs =
   mapParentsToDocs(parents);
 
+
+console.log(
+  "\n RETRIEVED CHILDREN: ",
+);
+
+retrievedChildren.forEach(
+  (doc, index) => {
+    console.log({
+    rank: index,
+    keys: Object.keys(doc),
+    parentId: doc.metadata?.parent_id,
+  });
+    console.log({
+      rank: index,
+      parentId:
+        doc.metadata?.parent_id,
+      hasContent:
+        !!doc.pageContent,
+      preview:
+        doc.pageContent
+          ?.slice(0, 80),
+    });
+  },
+);
+console.log(
+  "\n HYDRATED PARENTS: ",
+);
+
+parents.forEach((parent, index) => {
+  console.log(
+  index,
+  parent.id,
+);
+});
 return parentDocs;
 }
 
