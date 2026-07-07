@@ -21,6 +21,7 @@ import { fetchParents } from "./retrieval/fetchParent.js";
 import { embeddings } from "./config/embeddings.js";
 import { supabase } from "./config/supabase.js";
 import { rerankParents } from "./retrieval/rerankParents.js";
+import { compressContext } from "./retrieval/compressContext.js";
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
 const AnswerSchema = z.object({
@@ -215,8 +216,22 @@ const rerankedDocs =
     question,
     candidates,
   );
+  const compressedDocs =
+  await compressContext(
+    question,
+    candidates,
+  );
+console.log(
+  "Before compression:",
+  candidates[0]?.pageContent.length,
+);
 
-return rerankedDocs;
+console.log(
+  "After compression:",
+  compressedDocs[0]?.pageContent.length,
+);
+// return rerankedDocs;
+return compressedDocs;
 
 // console.log(
 //   "\n RETRIEVED CHILDREN: ",
