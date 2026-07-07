@@ -24,13 +24,16 @@ export function precisionAtK(
   retrieved: number[],
   expected: number[],
 ) {
+  if (retrieved.length === 0) {
+    return 0;
+  }
+
   const hits = retrieved.filter(
-    id => expected.includes(id)
+    (id) => expected.includes(id)
   );
 
   return hits.length / retrieved.length;
 }
-
 export function reciprocalRank(
   retrieved: number[],
   expected: number[],

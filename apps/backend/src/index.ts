@@ -189,7 +189,7 @@ retrievedChildren.forEach(
     }
   },
 );
-console.log(retrievedChildren[2], "strange");
+// console.log(retrievedChildren[2], "strange");
 // sorting parents by best child rank
 parents.sort((a, b) => {
   const scoreA =
@@ -207,39 +207,39 @@ const parentDocs =
   mapParentsToDocs(parents);
 
 
-console.log(
-  "\n RETRIEVED CHILDREN: ",
-);
+// console.log(
+//   "\n RETRIEVED CHILDREN: ",
+// );
 
-retrievedChildren.forEach(
-  (doc, index) => {
-    console.log({
-    rank: index,
-    keys: Object.keys(doc),
-    parentId: doc.metadata?.parent_id,
-  });
-    console.log({
-      rank: index,
-      parentId:
-        doc.metadata?.parent_id,
-      hasContent:
-        !!doc.pageContent,
-      preview:
-        doc.pageContent
-          ?.slice(0, 80),
-    });
-  },
-);
-console.log(
-  "\n HYDRATED PARENTS: ",
-);
+// retrievedChildren.forEach(
+//   (doc, index) => {
+//     console.log({
+//     rank: index,
+//     keys: Object.keys(doc),
+//     parentId: doc.metadata?.parent_id,
+//   });
+//     console.log({
+//       rank: index,
+//       parentId:
+//         doc.metadata?.parent_id,
+//       hasContent:
+//         !!doc.pageContent,
+//       preview:
+//         doc.pageContent
+//           ?.slice(0, 80),
+//     });
+//   },
+// );
+// console.log(
+//   "\n HYDRATED PARENTS: ",
+// );
 
-parents.forEach((parent, index) => {
-  console.log(
-  index,
-  parent.id,
-);
-});
+// parents.forEach((parent, index) => {
+//   console.log(
+//   index,
+//   parent.id,
+// );
+// });
 return parentDocs;
 }
 
