@@ -15,6 +15,6 @@
     "types": ["node"]
   },
 
-  "include": ["src", "src/executionPlanner/executionPlanSchema.ts"],
+  "include": ["src", "eval"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,482 @@
+[
+  {
+    "query": "What university did John Williams attend and later become an instructor at?",
+    "expectedParentIds": [
+      1
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Which book by John McGahern was shortlisted for the Booker Prize?",
+    "expectedParentIds": [
+      1
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the title of John Williams' National Book Award-winning novel?",
+    "expectedParentIds": [
+      1
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Who wrote the introduction to the book STONER?",
+    "expectedParentIds": [
+      2
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the name of the publisher of the book STONER?",
+    "expectedParentIds": [
+      2
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Who is the author of the book STONER?",
+    "expectedParentIds": [
+      2
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the title of the book published by The New York Review of Books?",
+    "expectedParentIds": [
+      3
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Who is the author of the introduction in the book Stoner?",
+    "expectedParentIds": [
+      3
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the ISBN number of the book Stoner?",
+    "expectedParentIds": [
+      3
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What are the main sections of the document?",
+    "expectedParentIds": [
+      4
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How many chapters are listed in the table of contents?",
+    "expectedParentIds": [
+      4
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Is there a section IV in the document?",
+    "expectedParentIds": [
+      4
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the name of the author who wrote the classic novel about university life?",
+    "expectedParentIds": [
+      5
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was Stoner's original expectation in life before attending the university?",
+    "expectedParentIds": [
+      5
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How did Stoner support himself while attending the university?",
+    "expectedParentIds": [
+      5
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What subject initially troubles and disquiets the protagonist?",
+    "expectedParentIds": [
+      6
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Who changes the protagonist's life and what is his profession?",
+    "expectedParentIds": [
+      6
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the protagonist's career after graduating with a Master of Arts?",
+    "expectedParentIds": [
+      6
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the nature of Stoner's marriage and how does the love affair impact it?",
+    "expectedParentIds": [
+      7
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How is Stoner's wife characterized in the story and what societal expectations does she embody?",
+    "expectedParentIds": [
+      7
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What role does the love affair between Stoner and the young teacher play in the overall narrative?",
+    "expectedParentIds": [
+      7
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the nature of the moral training she received at school and at home?",
+    "expectedParentIds": [
+      8
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What were her expected duties towards her family?",
+    "expectedParentIds": [
+      8
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was she ignorant of regarding her own body?",
+    "expectedParentIds": [
+      8
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the nature of the relationship between William Stoner and his wife Edith?",
+    "expectedParentIds": [
+      9
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How does Edith's sexuality change throughout the story?",
+    "expectedParentIds": [
+      9
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the impact of the birth of their daughter on Edith's emotions and behavior?",
+    "expectedParentIds": [
+      9
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the nature of the relationship between Stoner and Gordon Finch?",
+    "expectedParentIds": [
+      10
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Who becomes Stoner's implacable enemy in the novel?",
+    "expectedParentIds": [
+      10
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What happens to David Masters in the story?",
+    "expectedParentIds": [
+      10
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the main theme of the novel Stoner by John Williams?",
+    "expectedParentIds": [
+      11
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What does John Williams think is the most important aspect of being a good teacher?",
+    "expectedParentIds": [
+      11
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What award did John Williams win in 1973 for his novel Augustus?",
+    "expectedParentIds": [
+      11
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is unique about the style and settings of John Williams' novels?",
+    "expectedParentIds": [
+      12
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "In what year did John Williams retire as Professor of English from the University of Denver?",
+    "expectedParentIds": [
+      12
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How many years did John Williams teach at the University of Denver?",
+    "expectedParentIds": [
+      12
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the main complaint of Williams regarding the teaching of literature?",
+    "expectedParentIds": [
+      13
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the central idea of the novel according to John McGahern?",
+    "expectedParentIds": [
+      13
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How does the novel Stoner describe the concept of love?",
+    "expectedParentIds": [
+      13
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What is the book dedicated to?",
+    "expectedParentIds": [
+      14
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Is the University of Missouri portrayed realistically in the book?",
+    "expectedParentIds": [
+      14
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Are the characters in the book based on real people?",
+    "expectedParentIds": [
+      14
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What year did William Stoner enter the University of Missouri?",
+    "expectedParentIds": [
+      15
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the occupation of William Stoner's father?",
+    "expectedParentIds": [
+      15
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "In what year did William Stoner receive his Doctor of Philosophy degree?",
+    "expectedParentIds": [
+      15
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was William Stoner's life like as a child on the farm?",
+    "expectedParentIds": [
+      16
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How did William Stoner's mother regard her life?",
+    "expectedParentIds": [
+      16
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the household like where William Stoner grew up?",
+    "expectedParentIds": [
+      16
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What did the county agent suggest to William?",
+    "expectedParentIds": [
+      17
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How did William's father propose William could support himself while attending the College of Agriculture?",
+    "expectedParentIds": [
+      17
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the expected duration of the College of Agriculture program at the University in Columbia?",
+    "expectedParentIds": [
+      17
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Where is the place that William's cousin owns?",
+    "expectedParentIds": [
+      18
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How far is Booneville from William's home?",
+    "expectedParentIds": [
+      18
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What crop does William's father plan to plant in the upper twenty?",
+    "expectedParentIds": [
+      18
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the father's attitude towards schooling?",
+    "expectedParentIds": [
+      19
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "How did the protagonist travel to Columbia?",
+    "expectedParentIds": [
+      19
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What items did the protagonist bring with him to Columbia?",
+    "expectedParentIds": [
+      19
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What did the driver point to when they arrived in Columbia?",
+    "expectedParentIds": [
+      20
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "What was the condition of Stoner's face during the ride?",
+    "expectedParentIds": [
+      20
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  },
+  {
+    "query": "Where did the driver let Stoner off when they arrived in Columbia?",
+    "expectedParentIds": [
+      20
+    ],
+    "source": "./Stoner.pdf",
+    "difficulty": "medium"
+  }
+]

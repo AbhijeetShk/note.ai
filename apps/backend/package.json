@@ -8,7 +8,9 @@
     "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
     "ingest": "tsx src/ingestion/scripts/ingestPdf.ts",
     "test:retrieval":
-      "tsx src/scripts/test-parent-retrieval.ts"
+      "tsx src/scripts/test-parent-retrieval.ts",
+      "generate:retrieval-dataset":
+      "tsx src/scripts/generateRetrievalDataset.ts"
   },
   "keywords": [],
   "author": "",

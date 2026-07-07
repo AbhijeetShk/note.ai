@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import { retrieveHybrid } from "../index.js";
-import { evaluateRetrieval } from "../evaluation/retrievalEvaluator.js";
+import { evaluateRetrieval } from "../evaluation/retrieval/retrievalEvaluator.js";
 
 
 
