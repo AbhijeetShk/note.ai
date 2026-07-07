@@ -20,6 +20,7 @@ import { mapParentsToDocs } from "./retrieval/mapParentsToDocs.js";
 import { fetchParents } from "./retrieval/fetchParent.js";
 import { embeddings } from "./config/embeddings.js";
 import { supabase } from "./config/supabase.js";
+import { rerankParents } from "./retrieval/rerankParents.js";
 // Predef
 const USER_ID = "df1f93ae-6827-4c42-b8a3-9a0e2e80784f";
 const AnswerSchema = z.object({
@@ -206,6 +207,16 @@ parents.sort((a, b) => {
 const parentDocs =
   mapParentsToDocs(parents);
 
+const candidates =
+  parentDocs.slice(0, 10);
+
+const rerankedDocs =
+  await rerankParents(
+    question,
+    candidates,
+  );
+
+return rerankedDocs;
 
 // console.log(
 //   "\n RETRIEVED CHILDREN: ",
@@ -240,7 +251,7 @@ const parentDocs =
 //   parent.id,
 // );
 // });
-return parentDocs;
+// return parentDocs;
 }
 
 function formatCitations(docs: any[]) {

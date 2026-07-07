@@ -34,9 +34,9 @@ async function main() {
     (doc) => Number(doc.metadata.parent_id)
   );
 
-  // DEBUG
+
   if (index < 5) {
-    console.log("\n====================");
+    console.log("\n========Logs Start============");
     console.log("QUERY:");
     console.log(item.query);
 
@@ -49,7 +49,7 @@ async function main() {
     console.log("\nFIRST DOC METADATA:");
     console.log(docs[0]?.metadata);
 
-    console.log("====================\n");
+    console.log("==========Logs End==========\n");
   }
 
   recalls.push(

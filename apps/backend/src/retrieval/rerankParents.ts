@@ -26,6 +26,7 @@ export async function rerankParents(
         passages: pairs,
       } as any,
     });
+    
 
   const scoredDocs =
     docs.map((doc, i) => ({
